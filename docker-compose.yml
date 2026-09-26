@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: system-academy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-system_academy}
+      POSTGRES_USER: ${POSTGRES_USER:-system_academy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-system_academy}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - system-academy-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-system_academy} -d ${POSTGRES_DB:-system_academy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  system-academy-pgdata:

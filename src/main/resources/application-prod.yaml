@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      # validate: en prod el esquema lo gobiernan migraciones, no Hibernate.
+      ddl-auto: validate
+    show-sql: false
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
