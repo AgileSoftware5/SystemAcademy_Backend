@@ -49,5 +49,137 @@ Gestiona la persistencia de evaluaciones, preguntas, criterios de corrección y 
 
 Núcleo de procesamiento de lenguaje natural: recibe la pregunta, los criterios esperados y la respuesta del alumno; realiza comprensión semántica y extracción de conceptos clave; calcula el grado de coincidencia con lo esperado y redacta el feedback cuando el acierto es menor a 80%.
 
+## Modelo de Datos
 
+```mermaid
+erDiagram
+
+    users {
+        uuid id PK
+        varchar email UK
+        varchar password_hash
+        varchar full_name
+        varchar role
+        varchar status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    courses {
+        uuid id PK
+        uuid instructor_id FK
+        uuid created_by FK
+        varchar code UK
+        varchar name
+        text description
+        varchar enrollment_code UK
+        varchar status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    enrollments {
+        uuid id PK
+        uuid course_id FK
+        uuid student_id FK
+        varchar status
+        timestamptz enrolled_at
+    }
+
+    assessments {
+        uuid id PK
+        uuid course_id FK
+        varchar title
+        text instructions
+        timestamptz opens_at
+        timestamptz closes_at
+        varchar status
+        timestamptz results_released_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    questions {
+        uuid id PK
+        uuid assessment_id FK
+        int position
+        varchar question_type
+        text stem
+        text model_answer
+        text explanation
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    question_options {
+        uuid id PK
+        uuid question_id FK
+        int position
+        text label
+        boolean is_correct
+    }
+
+    rubric_criteria {
+        uuid id PK
+        uuid question_id FK
+        int position
+        text description
+    }
+
+    submissions {
+        uuid id PK
+        uuid assessment_id FK
+        uuid student_id FK
+        varchar status
+        timestamptz started_at
+        timestamptz submitted_at
+    }
+
+    answers {
+        uuid id PK
+        uuid submission_id FK
+        uuid question_id FK
+        uuid selected_option_id FK
+        text answer_text
+        boolean is_correct
+        varchar grading_status
+        text ai_general_feedback
+        varchar ai_model
+        text error_message
+        uuid reviewed_by FK
+        timestamptz reviewed_at
+        timestamptz updated_at
+    }
+
+    criterion_results {
+        uuid id PK
+        uuid answer_id FK
+        uuid rubric_criterion_id FK
+        varchar ai_verdict
+        text ai_evidence
+        text ai_feedback
+        varchar final_verdict
+        text final_feedback
+    }
+
+    users ||--o{ courses : teaches
+    users ||--o{ courses : creates
+    courses ||--o{ enrollments : has
+    users ||--o{ enrollments : enrolls
+
+    courses ||--o{ assessments : contains
+    assessments ||--|{ questions : contains
+    questions ||--o{ question_options : offers
+    questions ||--o{ rubric_criteria : defines
+
+    assessments ||--o{ submissions : receives
+    users ||--o{ submissions : submits
+    submissions ||--|{ answers : contains
+    questions ||--o{ answers : answered_by
+    question_options |o--o{ answers : selected_in
+
+    answers ||--o{ criterion_results : evaluated_in
+    rubric_criteria ||--o{ criterion_results : applied_in
+    users |o--o{ answers : reviews
+```
 
