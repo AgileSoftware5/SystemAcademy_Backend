@@ -57,13 +57,16 @@ public class AssessmentController {
         if (result.isFailure()) {
             return ApplicationErrorHttpMapper.toResponse(result.getError());
         }
-        return ResponseEntity.status(201).body(AssessmentResourceFromDomainAssembler.toResource(result.getValue()));
+        return ResponseEntity.status(201).body(AssessmentResourceFromDomainAssembler.toResource(result.getValue(), true));
     }
 
     @GetMapping("/api/v1/courses/{courseId}/assessments")
-    public ResponseEntity<List<AssessmentResource>> listByCourse(@PathVariable UUID courseId) {
+    public ResponseEntity<List<AssessmentResource>> listByCourse(@PathVariable UUID courseId, Authentication authentication) {
+        boolean includeModelAnswer = AuthenticatedUser.hasRole(authentication, "TEACHER") || AuthenticatedUser.hasRole(authentication, "ADMIN");
         var assessments = assessmentQueryService.handle(new ListAssessmentsByCourseQuery(courseId));
-        return ResponseEntity.ok(assessments.stream().map(AssessmentResourceFromDomainAssembler::toResource).toList());
+        return ResponseEntity.ok(assessments.stream()
+                .map(a -> AssessmentResourceFromDomainAssembler.toResource(a, includeModelAnswer))
+                .toList());
     }
 
     @PostMapping("/api/v1/assessments/{id}/questions")
@@ -76,7 +79,7 @@ public class AssessmentController {
         if (result.isFailure()) {
             return ApplicationErrorHttpMapper.toResponse(result.getError());
         }
-        return ResponseEntity.status(201).body(AssessmentResourceFromDomainAssembler.toResource(result.getValue()));
+        return ResponseEntity.status(201).body(AssessmentResourceFromDomainAssembler.toResource(result.getValue(), true));
     }
 
     @PostMapping("/api/v1/assessments/{id}/publications")
@@ -89,13 +92,14 @@ public class AssessmentController {
         if (result.isFailure()) {
             return ApplicationErrorHttpMapper.toResponse(result.getError());
         }
-        return ResponseEntity.ok(AssessmentResourceFromDomainAssembler.toResource(result.getValue()));
+        return ResponseEntity.ok(AssessmentResourceFromDomainAssembler.toResource(result.getValue(), true));
     }
 
     @GetMapping("/api/v1/assessments/{id}")
-    public ResponseEntity<AssessmentResource> getById(@PathVariable UUID id) {
+    public ResponseEntity<AssessmentResource> getById(@PathVariable UUID id, Authentication authentication) {
+        boolean includeModelAnswer = AuthenticatedUser.hasRole(authentication, "TEACHER") || AuthenticatedUser.hasRole(authentication, "ADMIN");
         return assessmentQueryService.handle(new GetAssessmentByIdQuery(id))
-                .map(AssessmentResourceFromDomainAssembler::toResource)
+                .map(a -> AssessmentResourceFromDomainAssembler.toResource(a, includeModelAnswer))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

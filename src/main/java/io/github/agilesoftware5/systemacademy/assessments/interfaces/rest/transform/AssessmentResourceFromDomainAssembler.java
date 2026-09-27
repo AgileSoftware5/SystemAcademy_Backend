@@ -12,9 +12,13 @@ public final class AssessmentResourceFromDomainAssembler {
     private AssessmentResourceFromDomainAssembler() {
     }
 
-    public static AssessmentResource toResource(Assessment assessment) {
+    /**
+     * @param includeModelAnswer false para alumnos: la respuesta modelo nunca debe viajar a quien va a rendir
+     *                           la evaluación, o el resultado de la corrección pierde sentido.
+     */
+    public static AssessmentResource toResource(Assessment assessment, boolean includeModelAnswer) {
         var questions = assessment.getQuestions().stream()
-                .map(AssessmentResourceFromDomainAssembler::toResource)
+                .map(q -> toResource(q, includeModelAnswer))
                 .toList();
         return new AssessmentResource(
                 assessment.getId(),
@@ -28,12 +32,13 @@ public final class AssessmentResourceFromDomainAssembler {
         );
     }
 
-    private static QuestionResource toResource(Question question) {
+    private static QuestionResource toResource(Question question, boolean includeModelAnswer) {
         var criteria = question.getCriteria().stream()
                 .map(AssessmentResourceFromDomainAssembler::toResource)
                 .toList();
+        String modelAnswer = includeModelAnswer ? question.getModelAnswer() : null;
         return new QuestionResource(question.getId(), question.getPosition(), question.getStem(),
-                question.getModelAnswer(), question.getExplanation(), criteria);
+                modelAnswer, question.getExplanation(), criteria);
     }
 
     private static RubricCriterionResource toResource(RubricCriterion criterion) {

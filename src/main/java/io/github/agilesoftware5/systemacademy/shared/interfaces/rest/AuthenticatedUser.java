@@ -13,4 +13,10 @@ public final class AuthenticatedUser {
     public static UUID id(Authentication authentication) {
         return UUID.fromString(authentication.getName());
     }
+
+    public static boolean hasRole(Authentication authentication, String role) {
+        String authority = "ROLE_" + role;
+        return authentication.getAuthorities().stream()
+                .anyMatch(granted -> granted.getAuthority().equals(authority));
+    }
 }

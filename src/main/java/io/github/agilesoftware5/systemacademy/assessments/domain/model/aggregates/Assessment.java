@@ -86,6 +86,13 @@ public class Assessment {
         this.status = AssessmentStatus.CLOSED;
     }
 
+    /** Hecho puro sobre esta evaluación: no decide qué pasa si no está abierta, eso es responsabilidad de quien la rinde. */
+    public boolean isOpenForSubmissions(Instant now) {
+        return status == AssessmentStatus.PUBLISHED
+                && !now.isBefore(opensAt)
+                && !now.isAfter(closesAt);
+    }
+
     private void ensureDraft() {
         if (status != AssessmentStatus.DRAFT) {
             throw new IllegalStateException("la evaluación ya no está en borrador");

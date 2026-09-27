@@ -183,3 +183,31 @@ erDiagram
     users |o--o{ answers : reviews
 ```
 
+### Cómo funciona hoy
+
+`users` → `courses`/`enrollments` → `assessments`/`questions`/`rubric_criteria` ya están implementados y probados de punta a punta. El circuito actual es:
+
+1. Un usuario se registra y se autentica (`users`), queda identificado por rol.
+2. Un docente crea un curso (`courses`) y recibe un código de matrícula; un alumno se une con ese código (`enrollments`).
+3. El docente arma una evaluación sobre su curso (`assessments`): agrega preguntas abiertas (`questions`) y, para cada una, los criterios que la IA va a usar para calificar (`rubric_criteria`). Recién cuando la evaluación tiene al menos una pregunta se puede publicar.
+4. La respuesta modelo de cada pregunta solo es visible para el docente — un alumno que consulta la evaluación nunca la recibe, para no invalidar la corrección.
+
+Estas cuatro tablas ya sostienen el ciclo completo de "crear curso → matricular → armar evaluación", que es la base sin la cual no tiene sentido construir nada del resto.
+
+### Qué falta
+
+**`submissions`** — registra el intento de un alumno rindiendo una evaluación puntual: qué evaluación, qué alumno, cuándo empezó y cuándo entregó, y en qué estado está (en curso, entregado). Es el "sobre cerrado" del examen: existe uno por cada vez que un alumno rinde una evaluación.
+
+**`answers`** — cada respuesta individual que el alumno escribió, una por pregunta, colgando de su `submission`. Guarda el texto de la respuesta y el estado de corrección (pendiente, procesando, completado), más los campos que llena la IA una vez que la califica: feedback general, qué modelo la evaluó, y si hubo un error en el proceso. También tiene lugar para que un docente revise y quede registrado (`reviewed_by`/`reviewed_at`), por si la IA se equivoca.
+
+**`criterion_results`** — el detalle fino: por cada criterio de la rúbrica de la pregunta, un veredicto separado ("cumple" / "cumple parcialmente" / "no cumple") con la evidencia y el feedback de por qué. Una sola respuesta puede tener varios `criterion_results` (uno por cada criterio que definió el docente). Acá vive también la posibilidad de que el docente sobrescriba el veredicto de la IA (`final_verdict`/`final_feedback`) sin perder el veredicto original de la IA (`ai_verdict`/`ai_feedback`).
+
+En conjunto: un `submission` agrupa varias `answers`, y cada `answer` se abre en varios `criterion_results` — así se arma el detalle completo de qué le faltó al alumno en cada punto de cada pregunta, no solo una nota global.
+
+`question_options` tampoco existe aún: el MVP solo contempla preguntas abiertas, así que se posterga hasta que haya una necesidad real de preguntas cerradas.
+
+### Integración con IA (LLM)
+
+Se define un puerto (`GradingEngine`) que el dominio usa para pedir "calificá esta respuesta contra estos criterios" sin saber qué hay detrás. Mientras se define el proveedor de IA a usar, se conecta una implementación de prueba fija (mock) para no bloquear el resto del desarrollo. La implementación real se resuelve con **Spring AI** (framework oficial del ecosistema Spring, ya en versión GA estable, compatible con la versión de Spring Boot de este proyecto): permite llamar a distintos proveedores de LLM (OpenAI, Anthropic, Google, entre otros) detrás de una misma interfaz, y devolver el veredicto de la IA como un dato estructurado (no texto libre a interpretar), que es exactamente lo que necesita `criterion_results`. Al ser una dependencia más del mismo proyecto Spring Boot, no se suma otro servicio ni otro lenguaje — se mantiene todo en un solo backend.
+
+Falta decidir: qué proveedor de LLM se usa y con qué modelo (uno económico alcanza para esta tarea, no hace falta el modelo más potente disponible), y quién administra esa clave de API.
