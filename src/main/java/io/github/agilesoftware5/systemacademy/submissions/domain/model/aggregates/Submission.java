@@ -1,6 +1,8 @@
 package io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates;
 
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.entities.Answer;
+import io.github.agilesoftware5.systemacademy.submissions.domain.model.entities.CriterionResult;
+import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.CriterionVerdict;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.SubmissionStatus;
 
 import java.time.OffsetDateTime;
@@ -174,6 +176,35 @@ public class Submission {
                 ));
 
         answer.updateAnswerText(answerText);
+    }
+
+    public void overrideCriterionResult(
+            UUID answerId,
+            UUID criterionResultId,
+            CriterionVerdict finalVerdict,
+            String finalFeedback
+    ) {
+        if (status != SubmissionStatus.SUBMITTED) {
+            throw new IllegalStateException(
+                    "solo se pueden revisar los resultados de una entrega enviada"
+            );
+        }
+
+        Answer answer = answers.stream()
+                .filter(existing -> existing.getId().equals(answerId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "la respuesta no pertenece a esta entrega"
+                ));
+
+        CriterionResult criterionResult = answer.getCriterionResults().stream()
+                .filter(existing -> existing.getId().equals(criterionResultId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "el resultado del criterio no pertenece a esta respuesta"
+                ));
+
+        criterionResult.overrideResult(finalVerdict, finalFeedback);
     }
 
     public UUID getId() {

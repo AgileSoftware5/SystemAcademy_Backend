@@ -2,10 +2,7 @@ package io.github.agilesoftware5.systemacademy.submissions.interfaces.rest;
 
 import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.ApplicationErrorHttpMapper;
 import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.AuthenticatedUser;
-import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.AddAnswerCommandService;
-import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.StartSubmissionCommandService;
-import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.SubmitSubmissionCommandService;
-import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.UpdateAnswerCommandService;
+import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.*;
 import io.github.agilesoftware5.systemacademy.submissions.application.queryservices.SubmissionQueryService;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.StartSubmissionCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.SubmitSubmissionCommand;
@@ -13,9 +10,11 @@ import io.github.agilesoftware5.systemacademy.submissions.domain.model.queries.G
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.queries.ListSubmissionsByAssessmentQuery;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.queries.ListSubmissionsByStudentQuery;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.AddAnswerResource;
+import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.OverrideCriterionResultResource;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.SubmissionResource;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.UpdateAnswerResource;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.AddAnswerCommandFromResourceAssembler;
+import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.OverrideCriterionResultCommandFromResourceAssembler;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.SubmissionResourceFromDomainAssembler;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.UpdateAnswerCommandFromResourceAssembler;
 import jakarta.validation.Valid;
@@ -34,6 +33,7 @@ public class SubmissionController {
     private final AddAnswerCommandService addAnswerCommandService;
     private final UpdateAnswerCommandService updateAnswerCommandService;
     private final SubmitSubmissionCommandService submitSubmissionCommandService;
+    private final OverrideCriterionResultCommandService overrideCriterionResultCommandService;
     private final SubmissionQueryService submissionQueryService;
 
     public SubmissionController(
@@ -41,12 +41,14 @@ public class SubmissionController {
             AddAnswerCommandService addAnswerCommandService,
             UpdateAnswerCommandService updateAnswerCommandService,
             SubmitSubmissionCommandService submitSubmissionCommandService,
+            OverrideCriterionResultCommandService overrideCriterionResultCommandService,
             SubmissionQueryService submissionQueryService
     ) {
         this.startSubmissionCommandService = startSubmissionCommandService;
         this.addAnswerCommandService = addAnswerCommandService;
         this.updateAnswerCommandService = updateAnswerCommandService;
         this.submitSubmissionCommandService = submitSubmissionCommandService;
+        this.overrideCriterionResultCommandService = overrideCriterionResultCommandService;
         this.submissionQueryService = submissionQueryService;
     }
 
@@ -174,19 +176,25 @@ public class SubmissionController {
 
     @GetMapping("/api/v1/submissions/{id}")
     public ResponseEntity<SubmissionResource> getById(
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            Authentication authentication
     ) {
+        UUID studentId = AuthenticatedUser.id(authentication);
+
         return submissionQueryService
-                .handle(new GetSubmissionByIdQuery(id))
+                .handle(new GetSubmissionByIdQuery(id, studentId))
                 .map(SubmissionResourceFromDomainAssembler::toResource)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/api/v1/students/{studentId}/submissions")
+    @GetMapping("/api/v1/students/me/submissions")
+    @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<List<SubmissionResource>> listByStudent(
-            @PathVariable UUID studentId
+            Authentication authentication
     ) {
+        UUID studentId = AuthenticatedUser.id(authentication);
+
         var submissions =
                 submissionQueryService.handle(
                         new ListSubmissionsByStudentQuery(studentId)
@@ -215,6 +223,37 @@ public class SubmissionController {
                 submissions.stream()
                         .map(SubmissionResourceFromDomainAssembler::toResource)
                         .toList()
+        );
+    }
+
+    @PutMapping(
+            "/api/v1/submissions/{submissionId}/answers/{answerId}/criteria/{criterionResultId}"
+    )
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<?> overrideCriterionResult(
+            @PathVariable UUID submissionId,
+            @PathVariable UUID answerId,
+            @PathVariable UUID criterionResultId,
+            @Valid @RequestBody OverrideCriterionResultResource resource
+    ) {
+        var command =
+                OverrideCriterionResultCommandFromResourceAssembler.toCommand(
+                        resource,
+                        submissionId,
+                        answerId,
+                        criterionResultId
+                );
+
+        var result = overrideCriterionResultCommandService.handle(command);
+
+        if (result.isFailure()) {
+            return ApplicationErrorHttpMapper.toResponse(result.getError());
+        }
+
+        return ResponseEntity.ok(
+                SubmissionResourceFromDomainAssembler.toResource(
+                        result.getValue()
+                )
         );
     }
 }

@@ -37,9 +37,10 @@ public class SubmissionQueryServiceImpl
                 query.submissionId()
         );
 
-        return submissionRepository.findById(
-                query.submissionId()
-        );
+        return submissionRepository.findById(query.submissionId())
+                .filter(submission ->
+                        submission.getStudentId().equals(query.studentId())
+                );
     }
 
     @Override
