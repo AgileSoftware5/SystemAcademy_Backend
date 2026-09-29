@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record AddAnswerCommand(
         UUID submissionId,
+        UUID studentId,
         UUID questionId,
         String answerText
 ) {
