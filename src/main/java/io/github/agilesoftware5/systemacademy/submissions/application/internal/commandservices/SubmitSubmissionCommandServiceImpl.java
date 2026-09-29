@@ -37,6 +37,10 @@ public class SubmitSubmissionCommandServiceImpl
                 command.studentId()
         );
 
+        if (ownershipResult.isFailure()) {
+            return Result.failure(ownershipResult.getError());
+        }
+
         log.debug(
                 "enviando entrega submissionId={} studentId={}",
                 command.submissionId(),
@@ -58,19 +62,19 @@ public class SubmitSubmissionCommandServiceImpl
             );
         }
 
-        if (!submission.getStudentId().equals(command.studentId())) {
-            log.warn(
-                    "intento de enviar entrega ajena submissionId={} studentId={}",
-                    command.submissionId(),
-                    command.studentId()
-            );
-
-            return Result.failure(
-                    ApplicationError.businessRuleViolation(
-                            "la entrega no pertenece al estudiante"
-                    )
-            );
-        }
+//        if (!submission.getStudentId().equals(command.studentId())) {
+//            log.warn(
+//                    "intento de enviar entrega ajena submissionId={} studentId={}",
+//                    command.submissionId(),
+//                    command.studentId()
+//            );
+//
+//            return Result.failure(
+//                    ApplicationError.businessRuleViolation(
+//                            "la entrega no pertenece al estudiante"
+//                    )
+//            );
+//        }
 
         try {
             submission.submit();

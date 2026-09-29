@@ -3,6 +3,7 @@ package io.github.agilesoftware5.systemacademy.submissions.application.internal.
 import io.github.agilesoftware5.systemacademy.shared.domain.ApplicationError;
 import io.github.agilesoftware5.systemacademy.shared.domain.Result;
 import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.StartSubmissionCommandService;
+import io.github.agilesoftware5.systemacademy.submissions.application.internal.guards.SubmissionOwnershipGuard;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates.Submission;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.StartSubmissionCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.repositories.SubmissionRepository;
@@ -27,7 +28,6 @@ public class StartSubmissionCommandServiceImpl
 
     @Override
     public Result<Submission> handle(StartSubmissionCommand command) {
-
         log.debug(
                 "iniciando entrega assessmentId={} studentId={}",
                 command.assessmentId(),

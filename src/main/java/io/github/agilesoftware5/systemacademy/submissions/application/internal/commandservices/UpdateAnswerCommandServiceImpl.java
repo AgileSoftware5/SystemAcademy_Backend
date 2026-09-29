@@ -37,6 +37,10 @@ public class UpdateAnswerCommandServiceImpl
                 command.studentId()
         );
 
+        if (ownershipResult.isFailure()) {
+            return Result.failure(ownershipResult.getError());
+        }
+
         log.debug(
                 "actualizando respuesta submissionId={} answerId={}",
                 command.submissionId(),

@@ -37,6 +37,10 @@ public class AddAnswerCommandServiceImpl
                 command.studentId()
         );
 
+        if (ownershipResult.isFailure()) {
+            return Result.failure(ownershipResult.getError());
+        }
+
         log.debug(
                 "agregando respuesta submissionId={} questionId={}",
                 command.submissionId(),
