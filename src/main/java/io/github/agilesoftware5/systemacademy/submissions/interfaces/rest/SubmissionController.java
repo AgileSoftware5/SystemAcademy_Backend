@@ -265,7 +265,7 @@ public class SubmissionController {
     @PostMapping(
             "/api/v1/submissions/{submissionId}/answers/{answerId}/grade"
     )
-    @PreAuthorize("hasRole('TEACHER')")
+//    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<?> gradeAnswer(
             @PathVariable UUID submissionId,
             @PathVariable UUID answerId

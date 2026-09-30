@@ -32,6 +32,82 @@ public class GradeAnswerCommandServiceImpl
         this.gradingEngine = gradingEngine;
     }
 
+//    @Override
+//    public Result<Submission> handle(GradeAnswerCommand command) {
+//
+//        var submission = submissionRepository
+//                .findById(command.submissionId())
+//                .orElse(null);
+//
+//        if (submission == null) {
+//            return Result.failure(
+//                    ApplicationError.notFound("entrega no encontrada")
+//            );
+//        }
+//
+//        try {
+//
+//            Answer answer = submission.getAnswers()
+//                    .stream()
+//                    .filter(existing ->
+//                            existing.getId().equals(command.answerId())
+//                    )
+//                    .findFirst()
+//                    .orElseThrow(() ->
+//                            new IllegalArgumentException(
+//                                    "la respuesta no pertenece a esta entrega"
+//                            )
+//                    );
+//
+//            answer.startGrading();
+//
+//            var input = questionGradingDataProvider.getQuestionGradingInput(
+//                    submission.getAssessmentId(),
+//                    answer.getQuestionId(),
+//                    answer.getAnswerText()
+//            );
+//
+//            GradingResult gradingResult =
+//                    gradingEngine.grade(input);
+//
+//            for (CriterionGradingResult criterionResult :
+//                    gradingResult.criteria()) {
+//
+//                answer.addCriterionResult(
+//                        CriterionResult.create(
+//                                answer.getId(),
+//                                criterionResult.rubricCriterionId(),
+//                                criterionResult.verdict(),
+//                                criterionResult.evidence(),
+//                                criterionResult.feedback()
+//                        )
+//                );
+//            }
+//
+//            answer.completeGrading(
+//                    gradingResult.generalFeedback(),
+//                    gradingResult.model()
+//            );
+//
+//            var savedSubmission =
+//                    submissionRepository.save(submission);
+//
+//            return Result.success(savedSubmission);
+//
+//        } catch (IllegalArgumentException e) {
+//
+//            return Result.failure(
+//                    ApplicationError.validationError(e.getMessage())
+//            );
+//
+//        } catch (IllegalStateException e) {
+//
+//            return Result.failure(
+//                    ApplicationError.businessRuleViolation(e.getMessage())
+//            );
+//        }
+//    }
+
     @Override
     public Result<Submission> handle(GradeAnswerCommand command) {
 
@@ -45,9 +121,11 @@ public class GradeAnswerCommandServiceImpl
             );
         }
 
+        Answer answer;
+
         try {
 
-            Answer answer = submission.getAnswers()
+            answer = submission.getAnswers()
                     .stream()
                     .filter(existing ->
                             existing.getId().equals(command.answerId())
@@ -59,9 +137,19 @@ public class GradeAnswerCommandServiceImpl
                             )
                     );
 
+        } catch (IllegalArgumentException e) {
+
+            return Result.failure(
+                    ApplicationError.validationError(e.getMessage())
+            );
+        }
+
+        try {
+
             answer.startGrading();
 
             var input = questionGradingDataProvider.getQuestionGradingInput(
+                    submission.getAssessmentId(),
                     answer.getQuestionId(),
                     answer.getAnswerText()
             );
@@ -93,16 +181,26 @@ public class GradeAnswerCommandServiceImpl
 
             return Result.success(savedSubmission);
 
-        } catch (IllegalArgumentException e) {
-
-            return Result.failure(
-                    ApplicationError.validationError(e.getMessage())
-            );
-
         } catch (IllegalStateException e) {
 
             return Result.failure(
                     ApplicationError.businessRuleViolation(e.getMessage())
+            );
+
+        } catch (Exception e) {
+
+            answer.markGradingError(
+                    e.getMessage() != null
+                            ? e.getMessage()
+                            : "error inesperado durante la evaluación"
+            );
+
+            submissionRepository.save(submission);
+
+            return Result.failure(
+                    ApplicationError.businessRuleViolation(
+                            "ocurrió un error durante la evaluación"
+                    )
             );
         }
     }

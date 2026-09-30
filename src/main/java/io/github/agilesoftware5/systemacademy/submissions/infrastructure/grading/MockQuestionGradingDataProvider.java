@@ -8,12 +8,13 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.UUID;
 
-@Component
+//@Component
 public class MockQuestionGradingDataProvider
         implements QuestionGradingDataProvider {
 
     @Override
     public QuestionGradingInput getQuestionGradingInput(
+            UUID assessmentId,
             UUID questionId,
             String answerText
     ) {

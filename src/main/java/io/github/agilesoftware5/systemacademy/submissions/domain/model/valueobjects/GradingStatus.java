@@ -3,5 +3,6 @@ package io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobj
 public enum GradingStatus {
     PENDING,
     PROCESSING,
-    COMPLETED
+    COMPLETED,
+    FAILED
 }

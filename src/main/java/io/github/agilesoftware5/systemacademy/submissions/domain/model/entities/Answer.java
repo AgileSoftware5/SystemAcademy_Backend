@@ -226,6 +226,7 @@ public class Answer {
         }
 
         this.errorMessage = errorMessage;
+        this.gradingStatus = GradingStatus.FAILED;
         this.updatedAt = OffsetDateTime.now();
     }
 
