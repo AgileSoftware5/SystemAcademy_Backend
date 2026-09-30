@@ -4,6 +4,7 @@ import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.Application
 import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.AuthenticatedUser;
 import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.*;
 import io.github.agilesoftware5.systemacademy.submissions.application.queryservices.SubmissionQueryService;
+import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.GradeAnswerCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.StartSubmissionCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.SubmitSubmissionCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.queries.GetSubmissionByIdQuery;
@@ -36,13 +37,16 @@ public class SubmissionController {
     private final OverrideCriterionResultCommandService overrideCriterionResultCommandService;
     private final SubmissionQueryService submissionQueryService;
 
+    private final GradeAnswerCommandService gradeAnswerCommandService;
+
     public SubmissionController(
             StartSubmissionCommandService startSubmissionCommandService,
             AddAnswerCommandService addAnswerCommandService,
             UpdateAnswerCommandService updateAnswerCommandService,
             SubmitSubmissionCommandService submitSubmissionCommandService,
             OverrideCriterionResultCommandService overrideCriterionResultCommandService,
-            SubmissionQueryService submissionQueryService
+            SubmissionQueryService submissionQueryService,
+            GradeAnswerCommandService gradeAnswerCommandService
     ) {
         this.startSubmissionCommandService = startSubmissionCommandService;
         this.addAnswerCommandService = addAnswerCommandService;
@@ -50,6 +54,7 @@ public class SubmissionController {
         this.submitSubmissionCommandService = submitSubmissionCommandService;
         this.overrideCriterionResultCommandService = overrideCriterionResultCommandService;
         this.submissionQueryService = submissionQueryService;
+        this.gradeAnswerCommandService = gradeAnswerCommandService;
     }
 
     @PostMapping("/api/v1/assessments/{assessmentId}/submissions")
@@ -245,6 +250,33 @@ public class SubmissionController {
                 );
 
         var result = overrideCriterionResultCommandService.handle(command);
+
+        if (result.isFailure()) {
+            return ApplicationErrorHttpMapper.toResponse(result.getError());
+        }
+
+        return ResponseEntity.ok(
+                SubmissionResourceFromDomainAssembler.toResource(
+                        result.getValue()
+                )
+        );
+    }
+
+    @PostMapping(
+            "/api/v1/submissions/{submissionId}/answers/{answerId}/grade"
+    )
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<?> gradeAnswer(
+            @PathVariable UUID submissionId,
+            @PathVariable UUID answerId
+    ) {
+
+        var command = new GradeAnswerCommand(
+                submissionId,
+                answerId
+        );
+
+        var result = gradeAnswerCommandService.handle(command);
 
         if (result.isFailure()) {
             return ApplicationErrorHttpMapper.toResponse(result.getError());
