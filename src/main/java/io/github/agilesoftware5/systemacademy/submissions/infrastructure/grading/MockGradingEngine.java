@@ -5,11 +5,13 @@ import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobje
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.QuestionGradingInput;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.RubricCriterionInput;
 import io.github.agilesoftware5.systemacademy.submissions.domain.services.GradingEngine;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@ConditionalOnProperty(name = "grading.engine", havingValue = "mock", matchIfMissing = true)
 public class MockGradingEngine implements GradingEngine {
 
     @Override

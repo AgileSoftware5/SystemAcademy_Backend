@@ -5,3 +5,11 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   jpa:
     open-in-view: false
+
+grading:
+  # mock: motor simulado | http: delega en el microservicio SystemAcademy_AI
+  engine: ${GRADING_ENGINE:mock}
+  ai:
+    base-url: ${AI_SERVICE_URL:http://localhost:8000}
+    api-key: ${AI_SERVICE_API_KEY:}
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:90}
