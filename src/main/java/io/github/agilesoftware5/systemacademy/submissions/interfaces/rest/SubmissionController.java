@@ -7,6 +7,7 @@ import io.github.agilesoftware5.systemacademy.submissions.application.queryservi
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.GradeAnswerCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.StartSubmissionCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.SubmitSubmissionCommand;
+import io.github.agilesoftware5.systemacademy.submissions.domain.model.queries.AreResultsReleasedQuery;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.queries.GetSubmissionByIdQuery;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.queries.ListSubmissionsByAssessmentQuery;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.queries.ListSubmissionsByStudentQuery;
@@ -14,7 +15,9 @@ import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resour
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.OverrideCriterionResultResource;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.SubmissionResource;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.UpdateAnswerResource;
+import io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates.Submission;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.AddAnswerCommandFromResourceAssembler;
+import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.GradingVisibility;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.OverrideCriterionResultCommandFromResourceAssembler;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.SubmissionResourceFromDomainAssembler;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.transform.UpdateAnswerCommandFromResourceAssembler;
@@ -24,6 +27,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,7 +84,8 @@ public class SubmissionController {
                 .status(201)
                 .body(
                         SubmissionResourceFromDomainAssembler.toResource(
-                                result.getValue()
+                                result.getValue(),
+                                GradingVisibility.HIDDEN
                         )
                 );
     }
@@ -113,7 +118,8 @@ public class SubmissionController {
                 .status(201)
                 .body(
                         SubmissionResourceFromDomainAssembler.toResource(
-                                result.getValue()
+                                result.getValue(),
+                                GradingVisibility.HIDDEN
                         )
                 );
     }
@@ -146,7 +152,8 @@ public class SubmissionController {
 
         return ResponseEntity.ok(
                 SubmissionResourceFromDomainAssembler.toResource(
-                        result.getValue()
+                        result.getValue(),
+                        GradingVisibility.HIDDEN
                 )
         );
     }
@@ -174,7 +181,8 @@ public class SubmissionController {
 
         return ResponseEntity.ok(
                 SubmissionResourceFromDomainAssembler.toResource(
-                        result.getValue()
+                        result.getValue(),
+                        GradingVisibility.HIDDEN
                 )
         );
     }
@@ -188,7 +196,10 @@ public class SubmissionController {
 
         return submissionQueryService
                 .handle(new GetSubmissionByIdQuery(id, studentId))
-                .map(SubmissionResourceFromDomainAssembler::toResource)
+                .map(submission -> SubmissionResourceFromDomainAssembler.toResource(
+                        submission,
+                        studentVisibility(submission)
+                ))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -205,9 +216,17 @@ public class SubmissionController {
                         new ListSubmissionsByStudentQuery(studentId)
                 );
 
+        var visibilityByAssessment = new HashMap<UUID, GradingVisibility>();
+
         return ResponseEntity.ok(
                 submissions.stream()
-                        .map(SubmissionResourceFromDomainAssembler::toResource)
+                        .map(submission -> SubmissionResourceFromDomainAssembler.toResource(
+                                submission,
+                                visibilityByAssessment.computeIfAbsent(
+                                        submission.getAssessmentId(),
+                                        assessmentId -> studentVisibility(submission)
+                                )
+                        ))
                         .toList()
         );
     }
@@ -215,18 +234,25 @@ public class SubmissionController {
     @GetMapping("/api/v1/assessments/{assessmentId}/submissions")
     @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<List<SubmissionResource>> listByAssessment(
-            @PathVariable UUID assessmentId
+            @PathVariable UUID assessmentId,
+            Authentication authentication
     ) {
+        UUID teacherId = AuthenticatedUser.id(authentication);
+
         var submissions =
                 submissionQueryService.handle(
                         new ListSubmissionsByAssessmentQuery(
-                                assessmentId
+                                assessmentId,
+                                teacherId
                         )
                 );
 
         return ResponseEntity.ok(
                 submissions.stream()
-                        .map(SubmissionResourceFromDomainAssembler::toResource)
+                        .map(submission -> SubmissionResourceFromDomainAssembler.toResource(
+                                submission,
+                                GradingVisibility.FULL
+                        ))
                         .toList()
         );
     }
@@ -239,14 +265,18 @@ public class SubmissionController {
             @PathVariable UUID submissionId,
             @PathVariable UUID answerId,
             @PathVariable UUID criterionResultId,
-            @Valid @RequestBody OverrideCriterionResultResource resource
+            @Valid @RequestBody OverrideCriterionResultResource resource,
+            Authentication authentication
     ) {
+        UUID teacherId = AuthenticatedUser.id(authentication);
+
         var command =
                 OverrideCriterionResultCommandFromResourceAssembler.toCommand(
                         resource,
                         submissionId,
                         answerId,
-                        criterionResultId
+                        criterionResultId,
+                        teacherId
                 );
 
         var result = overrideCriterionResultCommandService.handle(command);
@@ -257,7 +287,8 @@ public class SubmissionController {
 
         return ResponseEntity.ok(
                 SubmissionResourceFromDomainAssembler.toResource(
-                        result.getValue()
+                        result.getValue(),
+                        GradingVisibility.FULL
                 )
         );
     }
@@ -265,15 +296,18 @@ public class SubmissionController {
     @PostMapping(
             "/api/v1/submissions/{submissionId}/answers/{answerId}/grade"
     )
-//    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<?> gradeAnswer(
             @PathVariable UUID submissionId,
-            @PathVariable UUID answerId
+            @PathVariable UUID answerId,
+            Authentication authentication
     ) {
+        UUID teacherId = AuthenticatedUser.id(authentication);
 
         var command = new GradeAnswerCommand(
                 submissionId,
-                answerId
+                answerId,
+                teacherId
         );
 
         var result = gradeAnswerCommandService.handle(command);
@@ -284,7 +318,16 @@ public class SubmissionController {
 
         return ResponseEntity.ok(
                 SubmissionResourceFromDomainAssembler.toResource(
-                        result.getValue()
+                        result.getValue(),
+                        GradingVisibility.FULL
+                )
+        );
+    }
+
+    private GradingVisibility studentVisibility(Submission submission) {
+        return GradingVisibility.forStudent(
+                submissionQueryService.handle(
+                        new AreResultsReleasedQuery(submission.getAssessmentId())
                 )
         );
     }

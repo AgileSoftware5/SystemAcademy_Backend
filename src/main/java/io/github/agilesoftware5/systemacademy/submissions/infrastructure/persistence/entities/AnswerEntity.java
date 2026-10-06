@@ -59,6 +59,7 @@ public class AnswerEntity {
             orphanRemoval = true,
             fetch = FetchType.EAGER
     )
+    @OrderBy("position ASC")
     private List<CriterionResultEntity> criterionResults = new ArrayList<>();
 
     protected AnswerEntity() {

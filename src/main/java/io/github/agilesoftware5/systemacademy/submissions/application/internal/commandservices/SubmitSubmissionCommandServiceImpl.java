@@ -4,6 +4,7 @@ import io.github.agilesoftware5.systemacademy.shared.domain.ApplicationError;
 import io.github.agilesoftware5.systemacademy.shared.domain.Result;
 import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.SubmitSubmissionCommandService;
 import io.github.agilesoftware5.systemacademy.submissions.application.internal.guards.SubmissionOwnershipGuard;
+import io.github.agilesoftware5.systemacademy.submissions.application.internal.guards.SubmissionWindowGuard;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates.Submission;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.SubmitSubmissionCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.repositories.SubmissionRepository;
@@ -20,14 +21,16 @@ public class SubmitSubmissionCommandServiceImpl
 
     private final SubmissionRepository submissionRepository;
     private final SubmissionOwnershipGuard submissionOwnershipGuard;
-
+    private final SubmissionWindowGuard submissionWindowGuard;
 
     public SubmitSubmissionCommandServiceImpl(
             SubmissionRepository submissionRepository,
-            SubmissionOwnershipGuard submissionOwnershipGuard
+            SubmissionOwnershipGuard submissionOwnershipGuard,
+            SubmissionWindowGuard submissionWindowGuard
     ) {
         this.submissionRepository = submissionRepository;
         this.submissionOwnershipGuard = submissionOwnershipGuard;
+        this.submissionWindowGuard = submissionWindowGuard;
     }
 
     @Override
@@ -62,19 +65,15 @@ public class SubmitSubmissionCommandServiceImpl
             );
         }
 
-//        if (!submission.getStudentId().equals(command.studentId())) {
-//            log.warn(
-//                    "intento de enviar entrega ajena submissionId={} studentId={}",
-//                    command.submissionId(),
-//                    command.studentId()
-//            );
-//
-//            return Result.failure(
-//                    ApplicationError.businessRuleViolation(
-//                            "la entrega no pertenece al estudiante"
-//                    )
-//            );
-//        }
+        var window = submissionWindowGuard.ensureOpen(submission.getAssessmentId());
+        if (window.isFailure()) {
+            log.warn(
+                    "evaluación cerrada submissionId={} assessmentId={}",
+                    submission.getId(),
+                    submission.getAssessmentId()
+            );
+            return Result.failure(window.getError());
+        }
 
         try {
             submission.submit();

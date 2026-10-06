@@ -1,6 +1,9 @@
 spring:
   application:
     name: system-academy-backend
+  # Lee el .env local (KEY=VALUE). Las variables de entorno reales tienen prioridad.
+  config:
+    import: optional:file:.env[.properties]
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   jpa:
@@ -9,7 +12,13 @@ spring:
 grading:
   # mock: motor simulado | http: delega en el microservicio SystemAcademy_AI
   engine: ${GRADING_ENGINE:mock}
+  # Califica cada respuesta en segundo plano al entregar. false: solo disparo manual del docente.
+  auto-on-submit: ${GRADING_AUTO_ON_SUBMIT:true}
+  async:
+    pool-size: ${GRADING_POOL_SIZE:2}
+    queue-capacity: ${GRADING_QUEUE_CAPACITY:500}
   ai:
     base-url: ${AI_SERVICE_URL:http://localhost:8000}
     api-key: ${AI_SERVICE_API_KEY:}
+    # Debe ser mayor que GRADING_BUDGET_SECONDS del servicio de IA (80 por defecto)
     timeout-seconds: ${AI_TIMEOUT_SECONDS:90}

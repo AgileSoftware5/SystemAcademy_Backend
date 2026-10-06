@@ -4,6 +4,8 @@ import io.github.agilesoftware5.systemacademy.shared.domain.ApplicationError;
 import io.github.agilesoftware5.systemacademy.shared.domain.Result;
 import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.AddAnswerCommandService;
 import io.github.agilesoftware5.systemacademy.submissions.application.internal.guards.SubmissionOwnershipGuard;
+import io.github.agilesoftware5.systemacademy.submissions.application.internal.guards.SubmissionWindowGuard;
+import io.github.agilesoftware5.systemacademy.submissions.domain.services.AssessmentAccessProvider;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates.Submission;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.AddAnswerCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.entities.Answer;
@@ -21,13 +23,19 @@ public class AddAnswerCommandServiceImpl
 
     private final SubmissionRepository submissionRepository;
     private final SubmissionOwnershipGuard submissionOwnershipGuard;
+    private final SubmissionWindowGuard submissionWindowGuard;
+    private final AssessmentAccessProvider assessmentAccess;
 
     public AddAnswerCommandServiceImpl(
             SubmissionRepository submissionRepository,
-            SubmissionOwnershipGuard submissionOwnershipGuard
+            SubmissionOwnershipGuard submissionOwnershipGuard,
+            SubmissionWindowGuard submissionWindowGuard,
+            AssessmentAccessProvider assessmentAccess
     ) {
         this.submissionRepository = submissionRepository;
         this.submissionOwnershipGuard = submissionOwnershipGuard;
+        this.submissionWindowGuard = submissionWindowGuard;
+        this.assessmentAccess = assessmentAccess;
     }
 
     @Override
@@ -59,6 +67,27 @@ public class AddAnswerCommandServiceImpl
 
             return Result.failure(
                     ApplicationError.notFound("entrega no encontrada")
+            );
+        }
+
+        var window = submissionWindowGuard.ensureOpen(submission.getAssessmentId());
+        if (window.isFailure()) {
+            log.warn(
+                    "evaluación cerrada submissionId={} assessmentId={}",
+                    submission.getId(),
+                    submission.getAssessmentId()
+            );
+            return Result.failure(window.getError());
+        }
+
+        if (!assessmentAccess.hasQuestion(submission.getAssessmentId(), command.questionId())) {
+            log.warn(
+                    "pregunta ajena a la evaluación submissionId={} questionId={}",
+                    submission.getId(),
+                    command.questionId()
+            );
+            return Result.failure(
+                    ApplicationError.validationError("la pregunta no pertenece a esta evaluación")
             );
         }
 

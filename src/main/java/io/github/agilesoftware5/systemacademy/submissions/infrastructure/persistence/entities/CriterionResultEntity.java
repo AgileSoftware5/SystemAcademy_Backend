@@ -44,6 +44,10 @@ public class CriterionResultEntity {
     @Column(name = "final_feedback", columnDefinition = "text")
     private String finalFeedback;
 
+    /** Orden del criterio en la rúbrica. Null en filas anteriores a esta columna. */
+    @Column(name = "position")
+    private Integer position;
+
     protected CriterionResultEntity() {
     }
 
@@ -55,7 +59,8 @@ public class CriterionResultEntity {
             String aiEvidence,
             String aiFeedback,
             CriterionVerdict finalVerdict,
-            String finalFeedback
+            String finalFeedback,
+            Integer position
     ) {
         this.id = id;
         this.answer = answer;
@@ -65,6 +70,7 @@ public class CriterionResultEntity {
         this.aiFeedback = aiFeedback;
         this.finalVerdict = finalVerdict;
         this.finalFeedback = finalFeedback;
+        this.position = position;
     }
 
     public UUID getId() {
@@ -97,5 +103,9 @@ public class CriterionResultEntity {
 
     public String getFinalFeedback() {
         return finalFeedback;
+    }
+
+    public Integer getPosition() {
+        return position;
     }
 }

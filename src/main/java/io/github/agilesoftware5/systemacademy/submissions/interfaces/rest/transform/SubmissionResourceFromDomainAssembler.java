@@ -7,17 +7,20 @@ import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resour
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.CriterionResultResource;
 import io.github.agilesoftware5.systemacademy.submissions.interfaces.rest.resources.SubmissionResource;
 
+import java.util.List;
+
 public final class SubmissionResourceFromDomainAssembler {
 
     private SubmissionResourceFromDomainAssembler() {
     }
 
     public static SubmissionResource toResource(
-            Submission submission
+            Submission submission,
+            GradingVisibility visibility
     ) {
         var answers = submission.getAnswers()
                 .stream()
-                .map(SubmissionResourceFromDomainAssembler::toResource)
+                .map(answer -> toResource(answer, visibility))
                 .toList();
 
         return new SubmissionResource(
@@ -32,27 +35,51 @@ public final class SubmissionResourceFromDomainAssembler {
     }
 
     private static AnswerResource toResource(
-            Answer answer
+            Answer answer,
+            GradingVisibility visibility
     ) {
-        var criterionResults = answer.getCriterionResults()
-                .stream()
-                .map(SubmissionResourceFromDomainAssembler::toResource)
-                .toList();
-
-        return new AnswerResource(
-                answer.getId(),
-                answer.getQuestionId(),
-                answer.getAnswerText(),
-                answer.getGradingStatus(),
-                answer.getAiGeneralFeedback(),
-                answer.getAiModel(),
-                answer.getErrorMessage(),
-                answer.getReviewedBy(),
-                criterionResults
-        );
+        return switch (visibility) {
+            case FULL -> new AnswerResource(
+                    answer.getId(),
+                    answer.getQuestionId(),
+                    answer.getAnswerText(),
+                    answer.getGradingStatus(),
+                    answer.getAiGeneralFeedback(),
+                    answer.getAiModel(),
+                    answer.getErrorMessage(),
+                    answer.getReviewedBy(),
+                    answer.getCriterionResults().stream()
+                            .map(SubmissionResourceFromDomainAssembler::toFullResource)
+                            .toList()
+            );
+            case RELEASED -> new AnswerResource(
+                    answer.getId(),
+                    answer.getQuestionId(),
+                    answer.getAnswerText(),
+                    answer.getGradingStatus(),
+                    answer.getAiGeneralFeedback(),
+                    null,
+                    null,
+                    null,
+                    answer.getCriterionResults().stream()
+                            .map(SubmissionResourceFromDomainAssembler::toReleasedResource)
+                            .toList()
+            );
+            case HIDDEN -> new AnswerResource(
+                    answer.getId(),
+                    answer.getQuestionId(),
+                    answer.getAnswerText(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    List.of()
+            );
+        };
     }
 
-    private static CriterionResultResource toResource(
+    private static CriterionResultResource toFullResource(
             CriterionResult criterionResult
     ) {
         return new CriterionResultResource(
@@ -61,6 +88,20 @@ public final class SubmissionResourceFromDomainAssembler {
                 criterionResult.getAiVerdict(),
                 criterionResult.getAiEvidence(),
                 criterionResult.getAiFeedback(),
+                criterionResult.getFinalVerdict(),
+                criterionResult.getFinalFeedback()
+        );
+    }
+
+    private static CriterionResultResource toReleasedResource(
+            CriterionResult criterionResult
+    ) {
+        return new CriterionResultResource(
+                criterionResult.getId(),
+                criterionResult.getRubricCriterionId(),
+                null,
+                criterionResult.getAiEvidence(),
+                null,
                 criterionResult.getFinalVerdict(),
                 criterionResult.getFinalFeedback()
         );

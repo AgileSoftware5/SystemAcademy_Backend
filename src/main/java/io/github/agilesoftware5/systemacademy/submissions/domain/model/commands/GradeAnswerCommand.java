@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record GradeAnswerCommand(
         UUID submissionId,
-        UUID answerId
+        UUID answerId,
+        UUID teacherId
 ) {
 }

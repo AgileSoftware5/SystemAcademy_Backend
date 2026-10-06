@@ -1,5 +1,7 @@
 package io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates;
 
+import io.github.agilesoftware5.systemacademy.shared.domain.AggregateRoot;
+import io.github.agilesoftware5.systemacademy.submissions.domain.model.events.SubmissionSubmittedEvent;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.entities.Answer;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.entities.CriterionResult;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.CriterionVerdict;
@@ -11,7 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class Submission {
+public class Submission extends AggregateRoot {
 
     private final UUID id;
     private final UUID assessmentId;
@@ -136,6 +138,7 @@ public class Submission {
 
         status = SubmissionStatus.SUBMITTED;
         submittedAt = OffsetDateTime.now();
+        registerDomainEvent(new SubmissionSubmittedEvent(id, assessmentId));
     }
 
     private static void validateState(
@@ -182,7 +185,8 @@ public class Submission {
             UUID answerId,
             UUID criterionResultId,
             CriterionVerdict finalVerdict,
-            String finalFeedback
+            String finalFeedback,
+            UUID reviewerId
     ) {
         if (status != SubmissionStatus.SUBMITTED) {
             throw new IllegalStateException(
@@ -205,6 +209,7 @@ public class Submission {
                 ));
 
         criterionResult.overrideResult(finalVerdict, finalFeedback);
+        answer.markAsReviewed(reviewerId);
     }
 
     public UUID getId() {
