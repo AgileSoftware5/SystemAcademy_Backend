@@ -28,7 +28,7 @@ public class CourseOwnershipGuard {
             return Result.failure(ApplicationError.notFound("curso no encontrado"));
         }
         if (!course.getInstructorId().equals(teacherId)) {
-            return Result.failure(ApplicationError.businessRuleViolation("no sos el docente dueño de este curso"));
+            return Result.failure(ApplicationError.forbidden("no sos el docente dueño de este curso"));
         }
         return Result.success(null);
     }

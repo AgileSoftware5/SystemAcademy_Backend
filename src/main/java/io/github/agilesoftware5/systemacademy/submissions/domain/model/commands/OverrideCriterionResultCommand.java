@@ -9,5 +9,6 @@ public record OverrideCriterionResultCommand(
         UUID answerId,
         UUID criterionResultId,
         CriterionVerdict finalVerdict,
-        String finalFeedback
+        String finalFeedback,
+        UUID reviewerId
 ) {}

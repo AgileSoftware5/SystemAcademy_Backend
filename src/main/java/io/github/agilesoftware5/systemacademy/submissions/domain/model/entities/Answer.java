@@ -185,12 +185,14 @@ public class Answer {
     }
 
     public void startGrading() {
-        if (gradingStatus != GradingStatus.PENDING) {
+        if (!gradingStatus.canStartGrading()) {
             throw new IllegalStateException(
-                    "solo una respuesta pendiente puede iniciar su evaluación"
+                    "solo una respuesta pendiente o fallida puede iniciar su evaluación"
             );
         }
 
+        criterionResults.clear();
+        errorMessage = null;
         gradingStatus = GradingStatus.PROCESSING;
         updatedAt = OffsetDateTime.now();
     }

@@ -9,7 +9,13 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "submissions")
+@Table(
+        name = "submissions",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_submission_assessment_student",
+                columnNames = {"assessment_id", "student_id"}
+        )
+)
 public class SubmissionEntity {
 
     @Id

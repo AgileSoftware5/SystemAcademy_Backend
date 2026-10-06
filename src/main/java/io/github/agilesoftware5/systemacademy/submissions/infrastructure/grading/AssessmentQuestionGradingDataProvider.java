@@ -59,6 +59,7 @@ public class AssessmentQuestionGradingDataProvider
         return new QuestionGradingInput(
                 question.getId(),
                 question.getStem(),
+                question.getModelAnswer(),
                 answerText,
                 criteria
         );

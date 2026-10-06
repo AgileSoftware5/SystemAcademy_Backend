@@ -4,5 +4,10 @@ public enum GradingStatus {
     PENDING,
     PROCESSING,
     COMPLETED,
-    FAILED
+    FAILED;
+
+    /** FAILED también se puede reintentar: un error del proveedor de IA no debe bloquear la respuesta. */
+    public boolean canStartGrading() {
+        return this == PENDING || this == FAILED;
+    }
 }

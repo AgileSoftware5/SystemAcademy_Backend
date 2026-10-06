@@ -11,6 +11,11 @@ public record ApplicationError(ApplicationErrorCode code, String message) {
         return new ApplicationError(ApplicationErrorCode.NOT_FOUND, message);
     }
 
+    /** Autenticado, pero sin derecho sobre ese recurso (no es su curso, su entrega, etc.). */
+    public static ApplicationError forbidden(String message) {
+        return new ApplicationError(ApplicationErrorCode.FORBIDDEN, message);
+    }
+
     public static ApplicationError businessRuleViolation(String message) {
         return new ApplicationError(ApplicationErrorCode.BUSINESS_RULE_VIOLATION, message);
     }

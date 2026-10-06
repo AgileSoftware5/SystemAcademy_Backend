@@ -15,6 +15,7 @@ public final class ApplicationErrorHttpMapper {
         HttpStatus status = switch (error.code()) {
             case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case FORBIDDEN -> HttpStatus.FORBIDDEN;
             case BUSINESS_RULE_VIOLATION -> HttpStatus.UNPROCESSABLE_CONTENT;
             case CONFLICT -> HttpStatus.CONFLICT;
             case UNEXPECTED -> HttpStatus.INTERNAL_SERVER_ERROR;

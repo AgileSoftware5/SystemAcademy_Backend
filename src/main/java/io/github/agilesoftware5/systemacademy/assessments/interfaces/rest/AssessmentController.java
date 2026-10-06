@@ -3,6 +3,8 @@ package io.github.agilesoftware5.systemacademy.assessments.interfaces.rest;
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.AddOpenQuestionCommandService;
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.CreateAssessmentCommandService;
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.PublishAssessmentCommandService;
+import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.ReleaseAssessmentResultsCommandService;
+import io.github.agilesoftware5.systemacademy.assessments.domain.model.commands.ReleaseAssessmentResultsCommand;
 import io.github.agilesoftware5.systemacademy.assessments.application.queryservices.AssessmentQueryService;
 import io.github.agilesoftware5.systemacademy.assessments.domain.model.queries.GetAssessmentByIdQuery;
 import io.github.agilesoftware5.systemacademy.assessments.domain.model.queries.ListAssessmentsByCourseQuery;
@@ -35,15 +37,18 @@ public class AssessmentController {
     private final CreateAssessmentCommandService createAssessmentCommandService;
     private final AddOpenQuestionCommandService addOpenQuestionCommandService;
     private final PublishAssessmentCommandService publishAssessmentCommandService;
+    private final ReleaseAssessmentResultsCommandService releaseAssessmentResultsCommandService;
     private final AssessmentQueryService assessmentQueryService;
 
     public AssessmentController(CreateAssessmentCommandService createAssessmentCommandService,
                                  AddOpenQuestionCommandService addOpenQuestionCommandService,
                                  PublishAssessmentCommandService publishAssessmentCommandService,
+                                 ReleaseAssessmentResultsCommandService releaseAssessmentResultsCommandService,
                                  AssessmentQueryService assessmentQueryService) {
         this.createAssessmentCommandService = createAssessmentCommandService;
         this.addOpenQuestionCommandService = addOpenQuestionCommandService;
         this.publishAssessmentCommandService = publishAssessmentCommandService;
+        this.releaseAssessmentResultsCommandService = releaseAssessmentResultsCommandService;
         this.assessmentQueryService = assessmentQueryService;
     }
 
@@ -89,6 +94,17 @@ public class AssessmentController {
         UUID teacherId = AuthenticatedUser.id(authentication);
         var command = PublishAssessmentCommandFromResourceAssembler.toCommand(resource, id, teacherId);
         var result = publishAssessmentCommandService.handle(command);
+        if (result.isFailure()) {
+            return ApplicationErrorHttpMapper.toResponse(result.getError());
+        }
+        return ResponseEntity.ok(AssessmentResourceFromDomainAssembler.toResource(result.getValue(), true));
+    }
+
+    @PostMapping("/api/v1/assessments/{id}/result-releases")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<?> releaseResults(@PathVariable UUID id, Authentication authentication) {
+        UUID teacherId = AuthenticatedUser.id(authentication);
+        var result = releaseAssessmentResultsCommandService.handle(new ReleaseAssessmentResultsCommand(id, teacherId));
         if (result.isFailure()) {
             return ApplicationErrorHttpMapper.toResponse(result.getError());
         }
