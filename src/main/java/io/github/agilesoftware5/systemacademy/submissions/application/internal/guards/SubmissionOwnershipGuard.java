@@ -36,7 +36,7 @@ public class SubmissionOwnershipGuard {
 
         if (!submission.getStudentId().equals(studentId)) {
             return Result.failure(
-                    ApplicationError.businessRuleViolation(
+                    ApplicationError.forbidden(
                             "la entrega no pertenece al estudiante"
                     )
             );

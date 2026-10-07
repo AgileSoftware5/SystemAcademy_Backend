@@ -15,4 +15,8 @@ public interface SubmissionRepository {
     List<Submission> findByStudentId(UUID studentId);
 
     List<Submission> findByAssessmentId(UUID assessmentId);
+
+    long countUngradedAnswersOfSubmitted(UUID assessmentId);
+
+    boolean existsByAssessmentIdAndStudentId(UUID assessmentId, UUID studentId);
 }

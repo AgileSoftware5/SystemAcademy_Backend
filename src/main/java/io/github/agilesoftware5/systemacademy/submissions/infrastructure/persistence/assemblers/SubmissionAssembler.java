@@ -117,13 +117,13 @@ public final class SubmissionAssembler {
                 answer.getUpdatedAt()
         );
 
-        for (CriterionResult criterionResult :
-                answer.getCriterionResults()) {
-
+        List<CriterionResult> criterionResults = answer.getCriterionResults();
+        for (int position = 0; position < criterionResults.size(); position++) {
             entity.getCriterionResults().add(
                     criterionResultToEntity(
-                            criterionResult,
-                            entity
+                            criterionResults.get(position),
+                            entity,
+                            position
                     )
             );
         }
@@ -133,7 +133,8 @@ public final class SubmissionAssembler {
 
     private static CriterionResultEntity criterionResultToEntity(
             CriterionResult criterionResult,
-            AnswerEntity parent
+            AnswerEntity parent,
+            int position
     ) {
         return new CriterionResultEntity(
                 criterionResult.getId(),
@@ -143,7 +144,8 @@ public final class SubmissionAssembler {
                 criterionResult.getAiEvidence(),
                 criterionResult.getAiFeedback(),
                 criterionResult.getFinalVerdict(),
-                criterionResult.getFinalFeedback()
+                criterionResult.getFinalFeedback(),
+                position
         );
     }
 }

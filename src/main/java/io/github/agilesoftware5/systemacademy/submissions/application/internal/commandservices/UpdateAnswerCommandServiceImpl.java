@@ -4,6 +4,7 @@ import io.github.agilesoftware5.systemacademy.shared.domain.ApplicationError;
 import io.github.agilesoftware5.systemacademy.shared.domain.Result;
 import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.UpdateAnswerCommandService;
 import io.github.agilesoftware5.systemacademy.submissions.application.internal.guards.SubmissionOwnershipGuard;
+import io.github.agilesoftware5.systemacademy.submissions.application.internal.guards.SubmissionWindowGuard;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates.Submission;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.UpdateAnswerCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.repositories.SubmissionRepository;
@@ -20,14 +21,16 @@ public class UpdateAnswerCommandServiceImpl
 
     private final SubmissionRepository submissionRepository;
     private final SubmissionOwnershipGuard submissionOwnershipGuard;
-
+    private final SubmissionWindowGuard submissionWindowGuard;
 
     public UpdateAnswerCommandServiceImpl(
             SubmissionRepository submissionRepository,
-            SubmissionOwnershipGuard submissionOwnershipGuard
+            SubmissionOwnershipGuard submissionOwnershipGuard,
+            SubmissionWindowGuard submissionWindowGuard
     ) {
         this.submissionRepository = submissionRepository;
         this.submissionOwnershipGuard = submissionOwnershipGuard;
+        this.submissionWindowGuard = submissionWindowGuard;
     }
 
     @Override
@@ -60,6 +63,16 @@ public class UpdateAnswerCommandServiceImpl
             return Result.failure(
                     ApplicationError.notFound("entrega no encontrada")
             );
+        }
+
+        var window = submissionWindowGuard.ensureOpen(submission.getAssessmentId());
+        if (window.isFailure()) {
+            log.warn(
+                    "evaluación cerrada submissionId={} assessmentId={}",
+                    submission.getId(),
+                    submission.getAssessmentId()
+            );
+            return Result.failure(window.getError());
         }
 
         try {

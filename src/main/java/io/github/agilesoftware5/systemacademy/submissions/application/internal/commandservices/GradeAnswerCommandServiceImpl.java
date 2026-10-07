@@ -1,112 +1,38 @@
 package io.github.agilesoftware5.systemacademy.submissions.application.internal.commandservices;
 
-import io.github.agilesoftware5.systemacademy.shared.domain.Result;
 import io.github.agilesoftware5.systemacademy.shared.domain.ApplicationError;
+import io.github.agilesoftware5.systemacademy.shared.domain.Result;
 import io.github.agilesoftware5.systemacademy.submissions.application.commandservices.GradeAnswerCommandService;
+import io.github.agilesoftware5.systemacademy.submissions.application.internal.grading.AnswerGrader;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates.Submission;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.GradeAnswerCommand;
-import io.github.agilesoftware5.systemacademy.submissions.domain.model.entities.Answer;
-import io.github.agilesoftware5.systemacademy.submissions.domain.model.entities.CriterionResult;
-import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.CriterionGradingResult;
-import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.GradingResult;
-import io.github.agilesoftware5.systemacademy.submissions.domain.services.GradingEngine;
-import io.github.agilesoftware5.systemacademy.submissions.domain.services.QuestionGradingDataProvider;
 import io.github.agilesoftware5.systemacademy.submissions.domain.repositories.SubmissionRepository;
+import io.github.agilesoftware5.systemacademy.submissions.domain.services.AssessmentAccessProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+/** Disparo manual del docente: típicamente para reintentar una respuesta que quedó FAILED. */
 @Service
 public class GradeAnswerCommandServiceImpl
         implements GradeAnswerCommandService {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(GradeAnswerCommandServiceImpl.class);
+
     private final SubmissionRepository submissionRepository;
-    private final QuestionGradingDataProvider questionGradingDataProvider;
-    private final GradingEngine gradingEngine;
+    private final AssessmentAccessProvider assessmentAccess;
+    private final AnswerGrader answerGrader;
 
     public GradeAnswerCommandServiceImpl(
             SubmissionRepository submissionRepository,
-            QuestionGradingDataProvider questionGradingDataProvider,
-            GradingEngine gradingEngine
+            AssessmentAccessProvider assessmentAccess,
+            AnswerGrader answerGrader
     ) {
         this.submissionRepository = submissionRepository;
-        this.questionGradingDataProvider = questionGradingDataProvider;
-        this.gradingEngine = gradingEngine;
+        this.assessmentAccess = assessmentAccess;
+        this.answerGrader = answerGrader;
     }
-
-//    @Override
-//    public Result<Submission> handle(GradeAnswerCommand command) {
-//
-//        var submission = submissionRepository
-//                .findById(command.submissionId())
-//                .orElse(null);
-//
-//        if (submission == null) {
-//            return Result.failure(
-//                    ApplicationError.notFound("entrega no encontrada")
-//            );
-//        }
-//
-//        try {
-//
-//            Answer answer = submission.getAnswers()
-//                    .stream()
-//                    .filter(existing ->
-//                            existing.getId().equals(command.answerId())
-//                    )
-//                    .findFirst()
-//                    .orElseThrow(() ->
-//                            new IllegalArgumentException(
-//                                    "la respuesta no pertenece a esta entrega"
-//                            )
-//                    );
-//
-//            answer.startGrading();
-//
-//            var input = questionGradingDataProvider.getQuestionGradingInput(
-//                    submission.getAssessmentId(),
-//                    answer.getQuestionId(),
-//                    answer.getAnswerText()
-//            );
-//
-//            GradingResult gradingResult =
-//                    gradingEngine.grade(input);
-//
-//            for (CriterionGradingResult criterionResult :
-//                    gradingResult.criteria()) {
-//
-//                answer.addCriterionResult(
-//                        CriterionResult.create(
-//                                answer.getId(),
-//                                criterionResult.rubricCriterionId(),
-//                                criterionResult.verdict(),
-//                                criterionResult.evidence(),
-//                                criterionResult.feedback()
-//                        )
-//                );
-//            }
-//
-//            answer.completeGrading(
-//                    gradingResult.generalFeedback(),
-//                    gradingResult.model()
-//            );
-//
-//            var savedSubmission =
-//                    submissionRepository.save(submission);
-//
-//            return Result.success(savedSubmission);
-//
-//        } catch (IllegalArgumentException e) {
-//
-//            return Result.failure(
-//                    ApplicationError.validationError(e.getMessage())
-//            );
-//
-//        } catch (IllegalStateException e) {
-//
-//            return Result.failure(
-//                    ApplicationError.businessRuleViolation(e.getMessage())
-//            );
-//        }
-//    }
 
     @Override
     public Result<Submission> handle(GradeAnswerCommand command) {
@@ -116,92 +42,20 @@ public class GradeAnswerCommandServiceImpl
                 .orElse(null);
 
         if (submission == null) {
+            log.warn("entrega no encontrada submissionId={}", command.submissionId());
             return Result.failure(
                     ApplicationError.notFound("entrega no encontrada")
             );
         }
 
-        Answer answer;
-
-        try {
-
-            answer = submission.getAnswers()
-                    .stream()
-                    .filter(existing ->
-                            existing.getId().equals(command.answerId())
-                    )
-                    .findFirst()
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "la respuesta no pertenece a esta entrega"
-                            )
-                    );
-
-        } catch (IllegalArgumentException e) {
-
+        if (!assessmentAccess.isTaughtBy(submission.getAssessmentId(), command.teacherId())) {
+            log.warn("intento de calificar entrega ajena submissionId={} teacherId={}",
+                    submission.getId(), command.teacherId());
             return Result.failure(
-                    ApplicationError.validationError(e.getMessage())
+                    ApplicationError.forbidden("no sos el docente dueño de esta evaluación")
             );
         }
 
-        try {
-
-            answer.startGrading();
-
-            var input = questionGradingDataProvider.getQuestionGradingInput(
-                    submission.getAssessmentId(),
-                    answer.getQuestionId(),
-                    answer.getAnswerText()
-            );
-
-            GradingResult gradingResult =
-                    gradingEngine.grade(input);
-
-            for (CriterionGradingResult criterionResult :
-                    gradingResult.criteria()) {
-
-                answer.addCriterionResult(
-                        CriterionResult.create(
-                                answer.getId(),
-                                criterionResult.rubricCriterionId(),
-                                criterionResult.verdict(),
-                                criterionResult.evidence(),
-                                criterionResult.feedback()
-                        )
-                );
-            }
-
-            answer.completeGrading(
-                    gradingResult.generalFeedback(),
-                    gradingResult.model()
-            );
-
-            var savedSubmission =
-                    submissionRepository.save(submission);
-
-            return Result.success(savedSubmission);
-
-        } catch (IllegalStateException e) {
-
-            return Result.failure(
-                    ApplicationError.businessRuleViolation(e.getMessage())
-            );
-
-        } catch (Exception e) {
-
-            answer.markGradingError(
-                    e.getMessage() != null
-                            ? e.getMessage()
-                            : "error inesperado durante la evaluación"
-            );
-
-            submissionRepository.save(submission);
-
-            return Result.failure(
-                    ApplicationError.businessRuleViolation(
-                            "ocurrió un error durante la evaluación"
-                    )
-            );
-        }
+        return answerGrader.grade(submission, command.answerId());
     }
 }

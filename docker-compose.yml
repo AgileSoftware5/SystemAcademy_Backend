@@ -17,5 +17,30 @@ services:
       timeout: 5s
       retries: 10
 
+  # Servicio de IA (repo SystemAcademy_AI, clonado al lado de este). Levantar con: docker compose --profile ai up
+  ai:
+    profiles: ["ai"]
+    build: ${AI_SERVICE_PATH:-../SystemAcademy_AI}
+    container_name: system-academy-ai
+    restart: unless-stopped
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-40}
+      LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-2}
+      GRADING_BUDGET_SECONDS: ${GRADING_BUDGET_SECONDS:-80}
+      OPENAI_COMPAT_BASE_URL: ${OPENAI_COMPAT_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}
+      OPENAI_COMPAT_API_KEY: ${OPENAI_COMPAT_API_KEY:-}
+      OPENAI_COMPAT_MODEL: ${OPENAI_COMPAT_MODEL:-gemini-flash-latest}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5-20251001}
+    ports:
+      - "${AI_SERVICE_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   system-academy-pgdata:

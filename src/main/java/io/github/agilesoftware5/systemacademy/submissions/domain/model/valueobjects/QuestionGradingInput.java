@@ -6,6 +6,7 @@ import java.util.UUID;
 public record QuestionGradingInput(
         UUID questionId,
         String questionStem,
+        String modelAnswer,
         String answerText,
         List<RubricCriterionInput> criteria
 ) {

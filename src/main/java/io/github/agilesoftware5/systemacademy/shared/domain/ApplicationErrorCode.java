@@ -4,6 +4,7 @@ package io.github.agilesoftware5.systemacademy.shared.domain;
 public enum ApplicationErrorCode {
     VALIDATION_ERROR,
     NOT_FOUND,
+    FORBIDDEN,
     BUSINESS_RULE_VIOLATION,
     CONFLICT,
     UNEXPECTED

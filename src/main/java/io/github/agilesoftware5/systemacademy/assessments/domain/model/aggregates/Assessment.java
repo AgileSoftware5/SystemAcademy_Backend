@@ -86,6 +86,24 @@ public class Assessment {
         this.status = AssessmentStatus.CLOSED;
     }
 
+    /** Hace visibles las calificaciones a los alumnos. Solo cuando ya nadie puede seguir rindiendo. */
+    public void releaseResults(Instant now) {
+        Objects.requireNonNull(now, "now no puede ser null");
+        if (areResultsReleased()) {
+            throw new IllegalStateException("los resultados ya fueron publicados");
+        }
+        boolean closed = status == AssessmentStatus.CLOSED
+                || (status == AssessmentStatus.PUBLISHED && now.isAfter(closesAt));
+        if (!closed) {
+            throw new IllegalStateException("solo se publican resultados de una evaluación ya cerrada");
+        }
+        this.resultsReleasedAt = now;
+    }
+
+    public boolean areResultsReleased() {
+        return resultsReleasedAt != null;
+    }
+
     /** Hecho puro sobre esta evaluación: no decide qué pasa si no está abierta, eso es responsabilidad de quien la rinde. */
     public boolean isOpenForSubmissions(Instant now) {
         return status == AssessmentStatus.PUBLISHED

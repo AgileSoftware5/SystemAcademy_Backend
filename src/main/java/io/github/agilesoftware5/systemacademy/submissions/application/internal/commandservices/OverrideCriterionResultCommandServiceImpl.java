@@ -6,6 +6,7 @@ import io.github.agilesoftware5.systemacademy.shared.domain.ApplicationError;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.aggregates.Submission;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.OverrideCriterionResultCommand;
 import io.github.agilesoftware5.systemacademy.submissions.domain.repositories.SubmissionRepository;
+import io.github.agilesoftware5.systemacademy.submissions.domain.services.AssessmentAccessProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,11 +19,14 @@ public class OverrideCriterionResultCommandServiceImpl
             LoggerFactory.getLogger(OverrideCriterionResultCommandServiceImpl.class);
 
     private final SubmissionRepository submissionRepository;
+    private final AssessmentAccessProvider assessmentAccess;
 
     public OverrideCriterionResultCommandServiceImpl(
-            SubmissionRepository submissionRepository
+            SubmissionRepository submissionRepository,
+            AssessmentAccessProvider assessmentAccess
     ) {
         this.submissionRepository = submissionRepository;
+        this.assessmentAccess = assessmentAccess;
     }
 
     @Override
@@ -33,8 +37,17 @@ public class OverrideCriterionResultCommandServiceImpl
                 .orElse(null);
 
         if (submission == null) {
+            logger.warn("entrega no encontrada submissionId={}", command.submissionId());
             return Result.failure(
                     ApplicationError.notFound("entrega no encontrada")
+            );
+        }
+
+        if (!assessmentAccess.isTaughtBy(submission.getAssessmentId(), command.reviewerId())) {
+            logger.warn("intento de revisar entrega ajena submissionId={} reviewerId={}",
+                    submission.getId(), command.reviewerId());
+            return Result.failure(
+                    ApplicationError.forbidden("no sos el docente dueño de esta evaluación")
             );
         }
 
@@ -43,15 +56,18 @@ public class OverrideCriterionResultCommandServiceImpl
                     command.answerId(),
                     command.criterionResultId(),
                     command.finalVerdict(),
-                    command.finalFeedback()
+                    command.finalFeedback(),
+                    command.reviewerId()
             );
 
             var savedSubmission = submissionRepository.save(submission);
 
             logger.info(
-                    "Resultado de criterio actualizado: criterionResultId={}, submissionId={}",
+                    "resultado de criterio revisado criterionResultId={} submissionId={} reviewerId={} finalVerdict={}",
                     command.criterionResultId(),
-                    command.submissionId()
+                    command.submissionId(),
+                    command.reviewerId(),
+                    command.finalVerdict()
             );
 
             return Result.success(savedSubmission);

@@ -14,14 +14,16 @@ public final class OverrideCriterionResultCommandFromResourceAssembler {
             OverrideCriterionResultResource resource,
             UUID submissionId,
             UUID answerId,
-            UUID criterionResultId
+            UUID criterionResultId,
+            UUID reviewerId
     ) {
         return new OverrideCriterionResultCommand(
                 submissionId,
                 answerId,
                 criterionResultId,
                 resource.finalVerdict(),
-                resource.finalFeedback()
+                resource.finalFeedback(),
+                reviewerId
         );
     }
 }
