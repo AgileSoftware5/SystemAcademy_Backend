@@ -49,7 +49,9 @@ public class SubmissionSubmittedEventHandler {
 
         long failed = 0;
         for (UUID answerId : pending) {
-            if (answerGrader.grade(submission, answerId).isFailure()) {
+            // Se recarga por respuesta: tras un fallo al guardar, la copia en memoria queda obsoleta.
+            var current = submissionRepository.findById(submission.getId()).orElse(null);
+            if (current == null || answerGrader.grade(current, answerId).isFailure()) {
                 failed++;
             }
         }

@@ -227,6 +227,7 @@ public class Answer {
             );
         }
 
+        this.criterionResults.clear();
         this.errorMessage = errorMessage;
         this.gradingStatus = GradingStatus.FAILED;
         this.updatedAt = OffsetDateTime.now();

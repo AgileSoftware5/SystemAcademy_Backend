@@ -12,6 +12,7 @@ import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobje
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.RubricCriterionInput;
 import io.github.agilesoftware5.systemacademy.submissions.domain.repositories.SubmissionRepository;
 import io.github.agilesoftware5.systemacademy.submissions.domain.services.GradingEngine;
+import io.github.agilesoftware5.systemacademy.submissions.domain.services.GradingEngineException;
 import io.github.agilesoftware5.systemacademy.submissions.domain.services.QuestionGradingDataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,22 +115,54 @@ public class AnswerGrader {
 
         } catch (Exception e) {
 
+            String reason = failureReason(e);
+
             log.error("fallo al calificar answerId={} elapsedMs={}",
                     answer.getId(), System.currentTimeMillis() - startedAt, e);
 
-            answer.markGradingError(
-                    e.getMessage() != null
-                            ? e.getMessage()
-                            : "error inesperado durante la evaluación"
-            );
+            recordFailure(submission, answer, reason);
 
-            submissionRepository.save(submission);
+            return Result.failure(ApplicationError.businessRuleViolation(reason));
+        }
+    }
 
-            return Result.failure(
-                    ApplicationError.businessRuleViolation(
-                            "ocurrió un error durante la evaluación"
-                    )
-            );
+    /**
+     * Solo los mensajes que escribimos nosotros (motor y validaciones de dominio) se muestran;
+     * cualquier otra excepción (SQL, I/O) puede filtrar detalles internos y queda solo en logs.
+     */
+    private static String failureReason(Exception e) {
+        boolean safe = e instanceof GradingEngineException
+                || e instanceof IllegalArgumentException
+                || e instanceof IllegalStateException;
+        return safe && e.getMessage() != null && !e.getMessage().isBlank()
+                ? e.getMessage()
+                : "error inesperado durante la evaluación";
+    }
+
+    /**
+     * Deja la respuesta en FAILED sin resultados parciales para que se pueda reintentar.
+     * Nunca lanza: un fallo aquí no debe convertir un error de calificación en un 500.
+     */
+    private void recordFailure(Submission submission, Answer answer, String reason) {
+        try {
+            if (answer.getGradingStatus() == GradingStatus.PROCESSING) {
+                answer.markGradingError(reason);
+                submissionRepository.save(submission);
+                return;
+            }
+
+            // El fallo ocurrió al guardar el resultado: la copia en memoria ya está COMPLETED
+            // pero la BD conserva el estado anterior, así que se registra el error sobre una copia recargada.
+            var persisted = submissionRepository.findById(submission.getId()).orElseThrow();
+            var persistedAnswer = persisted.getAnswers().stream()
+                    .filter(existing -> existing.getId().equals(answer.getId()))
+                    .findFirst()
+                    .orElseThrow();
+            persistedAnswer.startGrading();
+            persistedAnswer.markGradingError(reason);
+            submissionRepository.save(persisted);
+        } catch (Exception inner) {
+            log.error("no se pudo registrar el fallo answerId={}", answer.getId(), inner);
         }
     }
 
