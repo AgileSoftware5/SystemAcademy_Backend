@@ -7,6 +7,7 @@ import io.github.agilesoftware5.systemacademy.submissions.domain.model.commands.
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.entities.Answer;
 import io.github.agilesoftware5.systemacademy.submissions.domain.model.valueobjects.*;
 import io.github.agilesoftware5.systemacademy.submissions.domain.services.GradingEngine;
+import io.github.agilesoftware5.systemacademy.submissions.domain.services.GradingEngineException;
 import io.github.agilesoftware5.systemacademy.submissions.support.FakeAssessmentAccess;
 import io.github.agilesoftware5.systemacademy.submissions.support.InMemorySubmissionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,19 +62,19 @@ class GradeAnswerCommandServiceImplTest {
 
     @Test
     void engineFailureMarksAnswerAsFailedAndPersistsIt() {
-        engine.enqueue(() -> { throw new RuntimeException("read timeout"); });
+        engine.enqueue(() -> { throw new GradingEngineException("el servicio de IA tardó demasiado en responder"); });
 
         var result = service.handle(command());
 
         assertTrue(result.isFailure());
         assertEquals(GradingStatus.FAILED, answer.getGradingStatus());
-        assertEquals("read timeout", answer.getErrorMessage());
+        assertEquals("el servicio de IA tardó demasiado en responder", answer.getErrorMessage());
         assertEquals(2, repository.saves);
     }
 
     @Test
     void failedAnswerCanBeGradedAgainUntilCompleted() {
-        engine.enqueue(() -> { throw new RuntimeException("read timeout"); });
+        engine.enqueue(() -> { throw new GradingEngineException("el servicio de IA no está disponible"); });
         engine.enqueue(this::validResult);
 
         service.handle(command());
@@ -94,7 +95,7 @@ class GradeAnswerCommandServiceImplTest {
 
         service.handle(command());
         assertEquals(GradingStatus.FAILED, answer.getGradingStatus());
-        assertEquals(1, answer.getCriterionResults().size());
+        assertEquals(0, answer.getCriterionResults().size(), "un intento fallido no deja resultados parciales");
 
         var retry = service.handle(command());
 
