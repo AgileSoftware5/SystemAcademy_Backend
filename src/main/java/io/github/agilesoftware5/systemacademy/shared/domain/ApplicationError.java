@@ -7,6 +7,11 @@ public record ApplicationError(ApplicationErrorCode code, String message) {
         return new ApplicationError(ApplicationErrorCode.VALIDATION_ERROR, message);
     }
 
+    /** La sesión no es válida (token de un usuario que ya no existe o está inactivo). */
+    public static ApplicationError unauthorized(String message) {
+        return new ApplicationError(ApplicationErrorCode.UNAUTHORIZED, message);
+    }
+
     public static ApplicationError notFound(String message) {
         return new ApplicationError(ApplicationErrorCode.NOT_FOUND, message);
     }
