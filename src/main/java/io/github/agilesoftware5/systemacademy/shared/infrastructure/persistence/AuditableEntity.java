@@ -11,7 +11,7 @@ import java.time.Instant;
 
 /**
  * Base para entidades de persistencia con timestamps de auditoría.
- * Requiere {@code @EnableJpaAuditing} en la configuración de arranque.
+ * Requiere {@code @EnableJpaAuditing} (ver JpaAuditingConfig).
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
