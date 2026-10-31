@@ -49,4 +49,16 @@ public class CourseRepositoryAdapter implements CourseRepository {
     public boolean existsByEnrollmentCode(String enrollmentCode) {
         return jpaRepository.existsByEnrollmentCode(enrollmentCode);
     }
+
+    @Override
+    public List<Course> findByIds(List<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+
+        return jpaRepository.findAllById(ids)
+                .stream()
+                .map(CourseAssembler::toDomain)
+                .toList();
+    }
 }

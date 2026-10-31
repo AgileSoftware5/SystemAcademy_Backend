@@ -1,11 +1,13 @@
 package io.github.agilesoftware5.systemacademy.courses.infrastructure.persistence.adapters;
 
 import io.github.agilesoftware5.systemacademy.courses.domain.model.aggregates.Enrollment;
+import io.github.agilesoftware5.systemacademy.courses.domain.model.valueobjects.EnrollmentStatus;
 import io.github.agilesoftware5.systemacademy.courses.domain.repositories.EnrollmentRepository;
 import io.github.agilesoftware5.systemacademy.courses.infrastructure.persistence.assemblers.EnrollmentAssembler;
 import io.github.agilesoftware5.systemacademy.courses.infrastructure.persistence.repositories.EnrollmentJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -26,5 +28,16 @@ public class EnrollmentRepositoryAdapter implements EnrollmentRepository {
     @Override
     public boolean existsByCourseIdAndStudentId(UUID courseId, UUID studentId) {
         return jpaRepository.existsByCourseIdAndStudentId(courseId, studentId);
+    }
+
+    @Override
+    public List<Enrollment> findByStudentIdAndStatus(
+            UUID studentId,
+            EnrollmentStatus status
+    ) {
+        return jpaRepository.findByStudentIdAndStatus(studentId, status)
+                .stream()
+                .map(EnrollmentAssembler::toDomain)
+                .toList();
     }
 }

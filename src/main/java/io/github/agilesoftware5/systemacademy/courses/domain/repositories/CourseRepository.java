@@ -19,4 +19,6 @@ public interface CourseRepository {
     boolean existsByCode(String code);
 
     boolean existsByEnrollmentCode(String enrollmentCode);
+
+    List<Course> findByIds(List<UUID> ids);
 }
