@@ -2,11 +2,14 @@ package io.github.agilesoftware5.systemacademy.identity.infrastructure.persisten
 
 import io.github.agilesoftware5.systemacademy.identity.domain.model.aggregates.User;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Email;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.UserStatus;
 import io.github.agilesoftware5.systemacademy.identity.domain.repositories.UserRepository;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.persistence.assemblers.UserAssembler;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.persistence.repositories.UserJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,5 +42,17 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public boolean existsByEmail(Email email) {
         return jpaRepository.existsByEmail(email.value());
+    }
+
+    @Override
+    public List<User> findByIdsAndRoleAndStatus(
+            List<UUID> ids,
+            Role role,
+            UserStatus status
+    ) {
+        return jpaRepository.findByIdInAndRoleAndStatus(ids, role, status)
+                .stream()
+                .map(UserAssembler::toDomain)
+                .toList();
     }
 }

@@ -40,4 +40,12 @@ public class EnrollmentRepositoryAdapter implements EnrollmentRepository {
                 .map(EnrollmentAssembler::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<Enrollment> findByCourseIdAndStatus(UUID courseId, EnrollmentStatus status) {
+        return jpaRepository.findByCourseIdAndStatus(courseId, status)
+                .stream()
+                .map(EnrollmentAssembler::toDomain)
+                .toList();
+    }
 }

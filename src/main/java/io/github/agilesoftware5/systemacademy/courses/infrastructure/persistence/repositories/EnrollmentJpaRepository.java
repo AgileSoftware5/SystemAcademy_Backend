@@ -1,5 +1,6 @@
 package io.github.agilesoftware5.systemacademy.courses.infrastructure.persistence.repositories;
 
+import io.github.agilesoftware5.systemacademy.courses.domain.model.aggregates.Enrollment;
 import io.github.agilesoftware5.systemacademy.courses.domain.model.valueobjects.EnrollmentStatus;
 import io.github.agilesoftware5.systemacademy.courses.infrastructure.persistence.entities.EnrollmentEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,11 @@ public interface EnrollmentJpaRepository extends JpaRepository<EnrollmentEntity,
 
     List<EnrollmentEntity> findByStudentIdAndStatus(
             UUID studentId,
+            EnrollmentStatus status
+    );
+
+    List<EnrollmentEntity> findByCourseIdAndStatus(
+            UUID courseId,
             EnrollmentStatus status
     );
 }

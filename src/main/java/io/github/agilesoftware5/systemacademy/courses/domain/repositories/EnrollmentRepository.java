@@ -16,4 +16,9 @@ public interface EnrollmentRepository {
             UUID studentId,
             EnrollmentStatus status
     );
+
+    List<Enrollment> findByCourseIdAndStatus(
+            UUID courseId,
+            EnrollmentStatus status
+    );
 }
