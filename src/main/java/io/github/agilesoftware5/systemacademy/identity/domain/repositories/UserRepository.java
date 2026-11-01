@@ -2,7 +2,10 @@ package io.github.agilesoftware5.systemacademy.identity.domain.repositories;
 
 import io.github.agilesoftware5.systemacademy.identity.domain.model.aggregates.User;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Email;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.UserStatus;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,4 +19,10 @@ public interface UserRepository {
     Optional<User> findByEmail(Email email);
 
     boolean existsByEmail(Email email);
+
+    List<User> findByIdsAndRoleAndStatus(
+            List<UUID> ids,
+            Role role,
+            UserStatus status
+    );
 }

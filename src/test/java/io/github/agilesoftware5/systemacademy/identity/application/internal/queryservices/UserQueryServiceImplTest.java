@@ -4,9 +4,11 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.aggregates.U
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetCurrentUserQuery;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Email;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.UserStatus;
 import io.github.agilesoftware5.systemacademy.identity.domain.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,6 +39,11 @@ class UserQueryServiceImplTest {
         @Override
         public boolean existsByEmail(Email email) {
             return false;
+        }
+
+        @Override
+        public List<User> findByIdsAndRoleAndStatus(List<UUID> ids, Role role, UserStatus status) {
+            return List.of();
         }
     };
 

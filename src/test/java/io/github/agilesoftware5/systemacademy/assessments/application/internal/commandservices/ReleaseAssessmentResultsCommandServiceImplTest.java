@@ -7,6 +7,7 @@ import io.github.agilesoftware5.systemacademy.courses.application.queryservices.
 import io.github.agilesoftware5.systemacademy.courses.domain.model.aggregates.Course;
 import io.github.agilesoftware5.systemacademy.courses.domain.model.queries.GetCourseByIdQuery;
 import io.github.agilesoftware5.systemacademy.courses.domain.model.queries.ListCoursesByInstructorQuery;
+import io.github.agilesoftware5.systemacademy.courses.domain.model.queries.ListCoursesByStudentQuery;
 import io.github.agilesoftware5.systemacademy.courses.domain.model.valueobjects.CourseStatus;
 import io.github.agilesoftware5.systemacademy.shared.domain.ApplicationErrorCode;
 import org.junit.jupiter.api.BeforeEach;
@@ -104,6 +105,11 @@ class ReleaseAssessmentResultsCommandServiceImplTest {
         @Override
         public List<Course> handle(ListCoursesByInstructorQuery query) {
             return List.of(course);
+        }
+
+        @Override
+        public List<Course> handle(ListCoursesByStudentQuery query) {
+            return List.of();
         }
     }
 }
