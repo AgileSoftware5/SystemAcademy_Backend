@@ -10,7 +10,12 @@ public final class EnrollStudentCommandFromResourceAssembler {
     private EnrollStudentCommandFromResourceAssembler() {
     }
 
+    /** Los códigos se generan en mayúsculas; se tolera minúsculas y espacios al teclearlos o copiarlos. */
+    private static String normalize(String code) {
+        return code.trim().toUpperCase();
+    }
+
     public static EnrollStudentCommand toCommand(EnrollStudentResource resource, UUID studentId) {
-        return new EnrollStudentCommand(resource.enrollmentCode(), studentId);
+        return new EnrollStudentCommand(normalize(resource.enrollmentCode()), studentId);
     }
 }

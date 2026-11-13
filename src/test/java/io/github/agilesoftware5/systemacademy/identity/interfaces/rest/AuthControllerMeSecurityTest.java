@@ -1,12 +1,15 @@
 package io.github.agilesoftware5.systemacademy.identity.interfaces.rest;
 
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.LoginCommandService;
+import io.github.agilesoftware5.systemacademy.identity.application.commandservices.LogoutCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.RegisterUserCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.queryservices.UserQueryService;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.aggregates.User;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.commands.LogoutCommand;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetCurrentUserQuery;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Email;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
+import io.github.agilesoftware5.systemacademy.identity.domain.repositories.RevokedTokenRepository;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtAuthenticationFilter;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtService;
 import io.github.agilesoftware5.systemacademy.shared.infrastructure.config.SecurityConfig;
@@ -27,7 +30,10 @@ import org.springframework.web.context.WebApplicationContext;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -62,6 +68,12 @@ class AuthControllerMeSecurityTest {
 
     @MockitoBean
     LoginCommandService loginCommandService;
+
+    @MockitoBean
+    LogoutCommandService logoutCommandService;
+
+    @MockitoBean
+    RevokedTokenRepository revokedTokenRepository;
 
     @BeforeEach
     void setUp() {
@@ -126,5 +138,32 @@ class AuthControllerMeSecurityTest {
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ---- BE-02: POST /api/v1/auth/logout
+
+    @Test
+    void logoutRevokesTheTokenUsedInTheRequest() throws Exception {
+        mvc.perform(post("/api/v1/auth/logout").header("Authorization", bearer()))
+                .andExpect(status().isNoContent());
+
+        verify(logoutCommandService).handle(any(LogoutCommand.class));
+    }
+
+    @Test
+    void logoutWithoutTokenIs401() throws Exception {
+        mvc.perform(post("/api/v1/auth/logout"))
+                .andExpect(status().isUnauthorized());
+
+        verify(logoutCommandService, never()).handle(any());
+    }
+
+    @Test
+    void aRevokedTokenIsRejectedEvenIfItsSignatureIsValid() throws Exception {
+        when(revokedTokenRepository.isRevoked(any())).thenReturn(true);
+        when(userQueryService.handle(any(GetCurrentUserQuery.class))).thenReturn(Optional.of(user));
+
+        mvc.perform(get("/api/v1/auth/me").header("Authorization", bearer()))
+                .andExpect(status().isUnauthorized());
     }
 }

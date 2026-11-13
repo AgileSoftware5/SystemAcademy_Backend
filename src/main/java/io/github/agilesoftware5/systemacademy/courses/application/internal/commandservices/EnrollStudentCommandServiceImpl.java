@@ -34,9 +34,16 @@ public class EnrollStudentCommandServiceImpl implements EnrollStudentCommandServ
             return Result.failure(ApplicationError.notFound("código de matrícula inválido"));
         }
 
-        if (enrollmentRepository.existsByCourseIdAndStudentId(course.getId(), command.studentId())) {
-            log.warn("matrícula duplicada studentId={} courseId={}", command.studentId(), course.getId());
-            return Result.failure(ApplicationError.conflict("ya estás matriculado en este curso"));
+        // Volver a ingresar el código es idempotente: devuelve la matrícula existente, así un alumno que
+        // perdió su sesión local puede recuperar el curso sin recibir un error.
+        var existing = enrollmentRepository.findByCourseIdAndStudentId(course.getId(), command.studentId());
+        if (existing.isPresent()) {
+            if (!existing.get().isActive()) {
+                log.warn("matrícula no activa studentId={} courseId={}", command.studentId(), course.getId());
+                return Result.failure(ApplicationError.conflict("tu matrícula en este curso no está activa"));
+            }
+            log.info("matrícula ya existente studentId={} courseId={}", command.studentId(), course.getId());
+            return Result.success(existing.get());
         }
 
         var enrollment = Enrollment.enroll(course.getId(), command.studentId());

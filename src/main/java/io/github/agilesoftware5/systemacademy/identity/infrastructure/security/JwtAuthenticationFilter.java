@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.AuthenticatedToken;
+import io.github.agilesoftware5.systemacademy.identity.domain.repositories.RevokedTokenRepository;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,9 +22,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtService jwtService;
+    private final RevokedTokenRepository revokedTokenRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, RevokedTokenRepository revokedTokenRepository) {
         this.jwtService = jwtService;
+        this.revokedTokenRepository = revokedTokenRepository;
     }
 
     @Override
@@ -32,10 +36,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith(BEARER_PREFIX)) {
             try {
                 var claims = jwtService.parse(header.substring(BEARER_PREFIX.length()));
+                String tokenId = claims.getId();
+                if (tokenId != null && revokedTokenRepository.isRevoked(tokenId)) {
+                    // sesión cerrada: la firma sigue siendo válida pero el token ya no se acepta.
+                    throw new IllegalStateException("token revocado");
+                }
                 String userId = claims.getSubject();
                 String role = claims.get("role", String.class);
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                 var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                authentication.setDetails(new AuthenticatedToken(tokenId, claims.getExpiration().toInstant()));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception ex) {
                 // token inválido/expirado: seguimos sin autenticar, Security responde 401 más abajo.
