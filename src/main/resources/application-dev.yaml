@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:system_academy}
+    username: ${POSTGRES_USER:system_academy}
+    password: ${POSTGRES_PASSWORD:system_academy}
+  jpa:
+    hibernate:
+      # update: cómodo en dev para iterar el modelo sin migraciones manuales todavía.
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+app:
+  jwt:
+    # secreto fijo solo para dev local, nunca usar en prod.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-32chars}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}

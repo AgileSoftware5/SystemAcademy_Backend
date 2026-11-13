@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build, tests y arquitectura
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16.4-alpine
+        env:
+          POSTGRES_DB: system_academy
+          POSTGRES_USER: system_academy
+          POSTGRES_PASSWORD: system_academy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U system_academy -d system_academy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      POSTGRES_DB: system_academy
+      POSTGRES_USER: system_academy
+      POSTGRES_PASSWORD: system_academy
+      POSTGRES_PORT: 5432
+      GRADING_ENGINE: mock
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      # Compila, corre tests unitarios, de contexto (con Postgres) y ArchUnit, y genera cobertura JaCoCo.
+      - name: Build y tests
+        run: ./mvnw -B -ntp verify
+
+      - name: Resumen de tests y cobertura
+        if: always()
+        run: python3 .github/scripts/ci_summary.py >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-tests-y-cobertura
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+          retention-days: 14
+
+  secrets-scan:
+    name: Búsqueda de secretos
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # CLI de Gitleaks (gratis). La action oficial pide licencia en cuentas de organización.
+      - name: Gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.0 \
+            git /repo --redact --no-banner --verbose
