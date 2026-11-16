@@ -1,8 +1,7 @@
 package io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.resources;
 
-import jakarta.validation.constraints.NotNull;
-
 import java.time.Instant;
 
-public record PublishAssessmentResource(@NotNull Instant opensAt, @NotNull Instant closesAt) {
+/** Las fechas son opcionales: si faltan se usan las guardadas en el borrador (ver BE-05). */
+public record PublishAssessmentResource(Instant opensAt, Instant closesAt) {
 }

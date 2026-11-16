@@ -28,7 +28,8 @@ public final class AssessmentAssembler {
                 entity.getClosesAt(),
                 entity.getStatus(),
                 entity.getResultsReleasedAt(),
-                questions
+                questions,
+                entity.getVersion()
         );
     }
 
@@ -49,7 +50,8 @@ public final class AssessmentAssembler {
                 assessment.getOpensAt(),
                 assessment.getClosesAt(),
                 assessment.getStatus(),
-                assessment.getResultsReleasedAt()
+                assessment.getResultsReleasedAt(),
+                assessment.getVersion()
         );
         for (Question question : assessment.getQuestions()) {
             entity.getQuestions().add(questionToEntity(question, entity));
