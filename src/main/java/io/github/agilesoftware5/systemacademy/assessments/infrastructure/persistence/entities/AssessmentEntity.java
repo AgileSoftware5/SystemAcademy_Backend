@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -48,6 +49,11 @@ public class AssessmentEntity extends AuditableEntity {
     @Column(name = "results_released_at")
     private Instant resultsReleasedAt;
 
+    /** Control de concurrencia optimista: evita que una edición y una publicación simultáneas se pisen. */
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private Long version;
+
     @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("position ASC")
     private List<QuestionEntity> questions = new ArrayList<>();
@@ -57,7 +63,7 @@ public class AssessmentEntity extends AuditableEntity {
     }
 
     public AssessmentEntity(UUID id, UUID courseId, String title, String instructions, Instant opensAt,
-                             Instant closesAt, AssessmentStatus status, Instant resultsReleasedAt) {
+                             Instant closesAt, AssessmentStatus status, Instant resultsReleasedAt, Long version) {
         this.id = id;
         this.courseId = courseId;
         this.title = title;
@@ -66,6 +72,7 @@ public class AssessmentEntity extends AuditableEntity {
         this.closesAt = closesAt;
         this.status = status;
         this.resultsReleasedAt = resultsReleasedAt;
+        this.version = version;
     }
 
     public UUID getId() {
@@ -98,6 +105,10 @@ public class AssessmentEntity extends AuditableEntity {
 
     public Instant getResultsReleasedAt() {
         return resultsReleasedAt;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public List<QuestionEntity> getQuestions() {
