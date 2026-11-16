@@ -4,6 +4,7 @@ import io.github.agilesoftware5.systemacademy.assessments.application.commandser
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.CreateAssessmentCommandService;
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.PublishAssessmentCommandService;
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.ReleaseAssessmentResultsCommandService;
+import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.UpdateAssessmentCommandService;
 import io.github.agilesoftware5.systemacademy.assessments.domain.model.commands.ReleaseAssessmentResultsCommand;
 import io.github.agilesoftware5.systemacademy.assessments.application.queryservices.AssessmentQueryService;
 import io.github.agilesoftware5.systemacademy.assessments.domain.model.queries.GetAssessmentByIdQuery;
@@ -12,10 +13,12 @@ import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.resour
 import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.resources.AssessmentResource;
 import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.resources.CreateAssessmentResource;
 import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.resources.PublishAssessmentResource;
+import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.resources.UpdateAssessmentResource;
 import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.transform.AddOpenQuestionCommandFromResourceAssembler;
 import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.transform.AssessmentResourceFromDomainAssembler;
 import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.transform.CreateAssessmentCommandFromResourceAssembler;
 import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.transform.PublishAssessmentCommandFromResourceAssembler;
+import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.transform.UpdateAssessmentCommandFromResourceAssembler;
 import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.ApplicationErrorHttpMapper;
 import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.AuthenticatedUser;
 import jakarta.validation.Valid;
@@ -25,6 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,17 +40,20 @@ public class AssessmentController {
 
     private final CreateAssessmentCommandService createAssessmentCommandService;
     private final AddOpenQuestionCommandService addOpenQuestionCommandService;
+    private final UpdateAssessmentCommandService updateAssessmentCommandService;
     private final PublishAssessmentCommandService publishAssessmentCommandService;
     private final ReleaseAssessmentResultsCommandService releaseAssessmentResultsCommandService;
     private final AssessmentQueryService assessmentQueryService;
 
     public AssessmentController(CreateAssessmentCommandService createAssessmentCommandService,
                                  AddOpenQuestionCommandService addOpenQuestionCommandService,
+                                 UpdateAssessmentCommandService updateAssessmentCommandService,
                                  PublishAssessmentCommandService publishAssessmentCommandService,
                                  ReleaseAssessmentResultsCommandService releaseAssessmentResultsCommandService,
                                  AssessmentQueryService assessmentQueryService) {
         this.createAssessmentCommandService = createAssessmentCommandService;
         this.addOpenQuestionCommandService = addOpenQuestionCommandService;
+        this.updateAssessmentCommandService = updateAssessmentCommandService;
         this.publishAssessmentCommandService = publishAssessmentCommandService;
         this.releaseAssessmentResultsCommandService = releaseAssessmentResultsCommandService;
         this.assessmentQueryService = assessmentQueryService;
@@ -85,6 +92,19 @@ public class AssessmentController {
             return ApplicationErrorHttpMapper.toResponse(result.getError());
         }
         return ResponseEntity.status(201).body(AssessmentResourceFromDomainAssembler.toResource(result.getValue(), true));
+    }
+
+    @PutMapping("/api/v1/assessments/{id}")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<?> updateDraft(@PathVariable UUID id, @Valid @RequestBody UpdateAssessmentResource resource,
+                                          Authentication authentication) {
+        UUID teacherId = AuthenticatedUser.id(authentication);
+        var command = UpdateAssessmentCommandFromResourceAssembler.toCommand(resource, id, teacherId);
+        var result = updateAssessmentCommandService.handle(command);
+        if (result.isFailure()) {
+            return ApplicationErrorHttpMapper.toResponse(result.getError());
+        }
+        return ResponseEntity.ok(AssessmentResourceFromDomainAssembler.toResource(result.getValue(), true));
     }
 
     @PostMapping("/api/v1/assessments/{id}/publications")

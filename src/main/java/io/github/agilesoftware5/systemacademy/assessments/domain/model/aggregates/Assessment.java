@@ -19,16 +19,18 @@ public class Assessment {
 
     private final UUID id;
     private final UUID courseId;
-    private final String title;
-    private final String instructions;
+    private String title;
+    private String instructions;
     private Instant opensAt;
     private Instant closesAt;
     private AssessmentStatus status;
     private Instant resultsReleasedAt;
     private final List<Question> questions;
+    /** Versión para control de concurrencia optimista; null mientras la evaluación no fue persistida. */
+    private final Long version;
 
     private Assessment(UUID id, UUID courseId, String title, String instructions, Instant opensAt, Instant closesAt,
-                        AssessmentStatus status, Instant resultsReleasedAt, List<Question> questions) {
+                        AssessmentStatus status, Instant resultsReleasedAt, List<Question> questions, Long version) {
         this.id = id;
         this.courseId = courseId;
         this.title = title;
@@ -38,6 +40,7 @@ public class Assessment {
         this.status = status;
         this.resultsReleasedAt = resultsReleasedAt;
         this.questions = questions;
+        this.version = version;
     }
 
     /** Alta de una evaluación nueva: nace DRAFT y vacía, el docente le agrega preguntas después. */
@@ -45,13 +48,14 @@ public class Assessment {
         Objects.requireNonNull(courseId, "courseId no puede ser null");
         validateTitle(title);
         return new Assessment(UUID.randomUUID(), courseId, title, instructions, null, null,
-                AssessmentStatus.DRAFT, null, new ArrayList<>());
+                AssessmentStatus.DRAFT, null, new ArrayList<>(), null);
     }
 
     public static Assessment fromPersistence(UUID id, UUID courseId, String title, String instructions,
                                               Instant opensAt, Instant closesAt, AssessmentStatus status,
-                                              Instant resultsReleasedAt, List<Question> questions) {
-        return new Assessment(id, courseId, title, instructions, opensAt, closesAt, status, resultsReleasedAt, new ArrayList<>(questions));
+                                              Instant resultsReleasedAt, List<Question> questions, Long version) {
+        return new Assessment(id, courseId, title, instructions, opensAt, closesAt, status, resultsReleasedAt,
+                new ArrayList<>(questions), version);
     }
 
     /** Agrega una pregunta abierta al final. Solo permitido mientras la evaluación está en DRAFT. */
@@ -63,19 +67,38 @@ public class Assessment {
         return question.getId();
     }
 
-    /** Publica la evaluación: a partir de acá los alumnos pueden rendirla y ya no se pueden agregar preguntas. */
+    /**
+     * Edita título, instrucciones y ventana de fechas. Solo permitido mientras la evaluación está en DRAFT.
+     * Las fechas son opcionales en borrador (se pueden definir recién al publicar), pero si vienen ambas
+     * deben ser coherentes.
+     */
+    public void updateDraft(String title, String instructions, Instant opensAt, Instant closesAt) {
+        ensureDraft();
+        validateTitle(title);
+        validateScheduleOrder(opensAt, closesAt);
+        this.title = title;
+        this.instructions = instructions;
+        this.opensAt = opensAt;
+        this.closesAt = closesAt;
+    }
+
+    /**
+     * Publica la evaluación: a partir de acá los alumnos pueden rendirla y ya no se pueden agregar preguntas.
+     * Las fechas recibidas tienen prioridad; si faltan se usan las que ya se guardaron en el borrador.
+     */
     public void publish(Instant opensAt, Instant closesAt) {
         ensureDraft();
         if (questions.isEmpty()) {
             throw new IllegalStateException("no se puede publicar una evaluación sin preguntas");
         }
-        Objects.requireNonNull(opensAt, "opensAt no puede ser null");
-        Objects.requireNonNull(closesAt, "closesAt no puede ser null");
-        if (!closesAt.isAfter(opensAt)) {
-            throw new IllegalArgumentException("closesAt debe ser posterior a opensAt");
+        Instant effectiveOpensAt = opensAt != null ? opensAt : this.opensAt;
+        Instant effectiveClosesAt = closesAt != null ? closesAt : this.closesAt;
+        if (effectiveOpensAt == null || effectiveClosesAt == null) {
+            throw new IllegalArgumentException("opensAt y closesAt son obligatorios para publicar");
         }
-        this.opensAt = opensAt;
-        this.closesAt = closesAt;
+        validateScheduleOrder(effectiveOpensAt, effectiveClosesAt);
+        this.opensAt = effectiveOpensAt;
+        this.closesAt = effectiveClosesAt;
         this.status = AssessmentStatus.PUBLISHED;
     }
 
@@ -117,6 +140,13 @@ public class Assessment {
         }
     }
 
+    /** Regla de ventana: si hay ambas fechas, el cierre es estrictamente posterior a la apertura. */
+    private static void validateScheduleOrder(Instant opensAt, Instant closesAt) {
+        if (opensAt != null && closesAt != null && !closesAt.isAfter(opensAt)) {
+            throw new IllegalArgumentException("closesAt debe ser posterior a opensAt");
+        }
+    }
+
     private static void validateTitle(String title) {
         if (title == null || title.isBlank()) {
             throw new IllegalArgumentException("title no puede estar vacío");
@@ -153,6 +183,10 @@ public class Assessment {
 
     public Instant getResultsReleasedAt() {
         return resultsReleasedAt;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public List<Question> getQuestions() {

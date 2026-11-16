@@ -3,6 +3,7 @@ package io.github.agilesoftware5.systemacademy.shared.interfaces.rest;
 import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.resources.ErrorResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -55,6 +56,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResource> handleNotFound(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResource("NOT_FOUND", "recurso no encontrado"));
+    }
+
+    /** Dos escrituras simultáneas sobre el mismo aggregate: la segunda debe releer y reintentar. */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResource> handleConcurrentModification(OptimisticLockingFailureException ex) {
+        log.warn("modificación concurrente: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResource("CONFLICT", "el recurso fue modificado por otra operación, recargá e intentá de nuevo"));
     }
 
     @ExceptionHandler(Exception.class)
