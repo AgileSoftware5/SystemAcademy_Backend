@@ -29,7 +29,9 @@ public final class AssessmentResourceFromDomainAssembler {
                 assessment.getClosesAt(),
                 assessment.getStatus().name(),
                 assessment.getResultsReleasedAt(),
-                questions
+                questions,
+                assessment.getCreatedAt(),
+                assessment.getUpdatedAt()
         );
     }
 

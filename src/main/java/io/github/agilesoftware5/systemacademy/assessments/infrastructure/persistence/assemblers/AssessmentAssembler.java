@@ -8,6 +8,7 @@ import io.github.agilesoftware5.systemacademy.assessments.infrastructure.persist
 import io.github.agilesoftware5.systemacademy.assessments.infrastructure.persistence.entities.RubricCriterionEntity;
 
 import java.util.List;
+import java.time.Instant;
 
 /** Traduce el aggregate Assessment completo (con sus Question y RubricCriterion) hacia/desde el grafo JPA. */
 public final class AssessmentAssembler {
@@ -29,7 +30,9 @@ public final class AssessmentAssembler {
                 entity.getStatus(),
                 entity.getResultsReleasedAt(),
                 questions,
-                entity.getVersion()
+                entity.getVersion(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
         );
     }
 
