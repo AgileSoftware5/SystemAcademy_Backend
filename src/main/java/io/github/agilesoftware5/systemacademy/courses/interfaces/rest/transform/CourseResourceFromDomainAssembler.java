@@ -16,7 +16,9 @@ public final class CourseResourceFromDomainAssembler {
                 course.getName(),
                 course.getDescription(),
                 course.getEnrollmentCode(),
-                course.getStatus().name()
+                course.getStatus().name(),
+                course.getCreatedAt(),
+                course.getUpdatedAt()
         );
     }
 }

@@ -4,6 +4,7 @@ import io.github.agilesoftware5.systemacademy.courses.domain.model.valueobjects.
 
 import java.util.Objects;
 import java.util.UUID;
+import java.time.Instant;
 
 /** Aggregate root de un curso. El docente dueño lo crea y define su código de matrícula. */
 public class Course {
@@ -16,9 +17,12 @@ public class Course {
     private final String description;
     private final String enrollmentCode;
     private CourseStatus status;
+    private final Instant createdAt;
+    private final Instant updatedAt;
 
     private Course(UUID id, UUID instructorId, UUID createdBy, String code, String name,
-                    String description, String enrollmentCode, CourseStatus status) {
+                    String description, String enrollmentCode, CourseStatus status, Instant createdAt,
+                   Instant updatedAt) {
         this.id = id;
         this.instructorId = instructorId;
         this.createdBy = createdBy;
@@ -27,6 +31,8 @@ public class Course {
         this.description = description;
         this.enrollmentCode = enrollmentCode;
         this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     /** Alta de un curso nuevo: siempre nace ACTIVE. El enrollmentCode ya viene generado y validado como único. */
@@ -37,13 +43,15 @@ public class Course {
         validateCode(code);
         validateName(name);
         Objects.requireNonNull(enrollmentCode, "enrollmentCode no puede ser null");
-        return new Course(UUID.randomUUID(), instructorId, createdBy, code, name, description, enrollmentCode, CourseStatus.ACTIVE);
+        return new Course(UUID.randomUUID(), instructorId, createdBy, code, name, description, enrollmentCode, CourseStatus.ACTIVE, null, null);
     }
 
     /** Reconstrucción desde persistencia: no revalida invariantes de negocio, ya son datos confiables. */
     public static Course fromPersistence(UUID id, UUID instructorId, UUID createdBy, String code, String name,
-                                          String description, String enrollmentCode, CourseStatus status) {
-        return new Course(id, instructorId, createdBy, code, name, description, enrollmentCode, status);
+                                          String description, String enrollmentCode, CourseStatus status, Instant createdAt,
+                                         Instant updatedAt) {
+        return new Course(id, instructorId, createdBy, code, name, description, enrollmentCode, status, createdAt,
+                updatedAt);
     }
 
     public void archive() {
@@ -96,5 +104,13 @@ public class Course {
 
     public CourseStatus getStatus() {
         return status;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }
