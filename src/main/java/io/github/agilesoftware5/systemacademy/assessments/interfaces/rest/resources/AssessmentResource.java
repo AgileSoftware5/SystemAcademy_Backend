@@ -13,6 +13,8 @@ public record AssessmentResource(
         Instant closesAt,
         String status,
         Instant resultsReleasedAt,
-        List<QuestionResource> questions
+        List<QuestionResource> questions,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

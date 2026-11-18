@@ -10,6 +10,7 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtAuthenticationFilter;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtService;
 import io.github.agilesoftware5.systemacademy.shared.infrastructure.config.SecurityConfig;
+import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.JsonAuthenticationEntryPoint;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** BE-04: GET /api/v1/auth/me con el perímetro de seguridad real (SecurityConfig + filtro JWT). */
 @WebMvcTest(AuthController.class)
 @EnableWebSecurity
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class, JsonAuthenticationEntryPoint.class})
 @TestPropertySource(properties = {
         "app.jwt.secret=test-only-secret-with-at-least-32-characters",
         "app.jwt.expiration-minutes=60"

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+
 /**
  * Aggregate root: Assessment es la frontera de consistencia completa (incluye sus Question).
  * No se puede editar preguntas fuera de este objeto — así se garantizan las invariantes
@@ -28,9 +29,12 @@ public class Assessment {
     private final List<Question> questions;
     /** Versión para control de concurrencia optimista; null mientras la evaluación no fue persistida. */
     private final Long version;
+    private final Instant createdAt;
+    private final Instant updatedAt;
 
     private Assessment(UUID id, UUID courseId, String title, String instructions, Instant opensAt, Instant closesAt,
-                        AssessmentStatus status, Instant resultsReleasedAt, List<Question> questions, Long version) {
+                        AssessmentStatus status, Instant resultsReleasedAt, List<Question> questions, Long version, Instant createdAt,
+                       Instant updatedAt) {
         this.id = id;
         this.courseId = courseId;
         this.title = title;
@@ -41,6 +45,8 @@ public class Assessment {
         this.resultsReleasedAt = resultsReleasedAt;
         this.questions = questions;
         this.version = version;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     /** Alta de una evaluación nueva: nace DRAFT y vacía, el docente le agrega preguntas después. */
@@ -48,14 +54,16 @@ public class Assessment {
         Objects.requireNonNull(courseId, "courseId no puede ser null");
         validateTitle(title);
         return new Assessment(UUID.randomUUID(), courseId, title, instructions, null, null,
-                AssessmentStatus.DRAFT, null, new ArrayList<>(), null);
+                AssessmentStatus.DRAFT, null, new ArrayList<>(), null, null, null);
     }
 
     public static Assessment fromPersistence(UUID id, UUID courseId, String title, String instructions,
                                               Instant opensAt, Instant closesAt, AssessmentStatus status,
-                                              Instant resultsReleasedAt, List<Question> questions, Long version) {
+                                              Instant resultsReleasedAt, List<Question> questions, Long version, Instant createdAt,
+                                             Instant updatedAt) {
         return new Assessment(id, courseId, title, instructions, opensAt, closesAt, status, resultsReleasedAt,
-                new ArrayList<>(questions), version);
+                new ArrayList<>(questions), version, createdAt,
+                updatedAt);
     }
 
     /** Agrega una pregunta abierta al final. Solo permitido mientras la evaluación está en DRAFT. */
@@ -191,5 +199,13 @@ public class Assessment {
 
     public List<Question> getQuestions() {
         return Collections.unmodifiableList(questions);
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }

@@ -31,7 +31,7 @@ class UpdateAssessmentCommandServiceImplTest {
     @BeforeEach
     void setUp() {
         Course course = Course.fromPersistence(UUID.randomUUID(), teacherId, teacherId,
-                "POO-101", "POO", null, "ABC123", CourseStatus.ACTIVE);
+                "POO-101", "POO", null, "ABC123", CourseStatus.ACTIVE, null, null);
         service = new UpdateAssessmentCommandServiceImpl(
                 new InMemoryAssessmentRepository(),
                 new CourseOwnershipGuard(new SingleCourseQueryService(course)));

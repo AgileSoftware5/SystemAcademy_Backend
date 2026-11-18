@@ -17,7 +17,9 @@ public final class CourseAssembler {
                 entity.getName(),
                 entity.getDescription(),
                 entity.getEnrollmentCode(),
-                entity.getStatus()
+                entity.getStatus(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
         );
     }
 
