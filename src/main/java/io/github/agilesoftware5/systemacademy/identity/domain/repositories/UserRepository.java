@@ -20,6 +20,10 @@ public interface UserRepository {
 
     boolean existsByEmail(Email email);
 
+    boolean existsByRole(Role role);
+
+    List<User> findAll();
+
     List<User> findByIdsAndRoleAndStatus(
             List<UUID> ids,
             Role role,

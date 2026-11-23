@@ -1,10 +1,9 @@
 name: CI
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_call: # lo ejecuta deploy.yml antes de desplegar
 
 concurrency:
   group: ci-${{ github.ref }}

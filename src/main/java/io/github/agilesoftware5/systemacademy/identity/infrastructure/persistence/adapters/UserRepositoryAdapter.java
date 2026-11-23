@@ -45,6 +45,16 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public boolean existsByRole(Role role) {
+        return jpaRepository.existsByRole(role);
+    }
+
+    @Override
+    public List<User> findAll() {
+        return jpaRepository.findAll().stream().map(UserAssembler::toDomain).toList();
+    }
+
+    @Override
     public List<User> findByIdsAndRoleAndStatus(
             List<UUID> ids,
             Role role,

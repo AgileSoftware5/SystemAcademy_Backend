@@ -1,3 +1,4 @@
+# Producción en Azure (PostgreSQL Flexible Server). Sin defaults en secretos ni en infraestructura: si falta algo, no arranca.
 spring:
   datasource:
     url: ${DB_URL}
@@ -5,7 +6,7 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      # validate: en prod el esquema lo gobiernan migraciones, no Hibernate.
+      # validate: el esquema lo gobiernan las migraciones, no Hibernate.
       ddl-auto: validate
     show-sql: false
 
@@ -13,7 +14,26 @@ logging:
   level:
     org.hibernate.SQL: warn
 
+# Sin documentación interactiva expuesta en producción.
+springdoc:
+  api-docs:
+    enabled: false
+  scalar:
+    enabled: false
+
+grading:
+  engine: http
+  auto-on-submit: true
+  async:
+    pool-size: ${GRADING_POOL_SIZE:1}
+  ai:
+    base-url: ${AI_SERVICE_URL}
+    api-key: ${AI_SERVICE_API_KEY}
+    timeout-seconds: 90
+
 app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  cors:
+    allowed-origins: https://criteria.angelanampa.dev
