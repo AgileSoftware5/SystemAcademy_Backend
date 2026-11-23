@@ -4,21 +4,36 @@ spring:
   # Lee el .env local (KEY=VALUE). Las variables de entorno reales tienen prioridad.
   config:
     import: optional:file:.env[.properties]
+  # Perfiles: local (tu máquina + Postgres en Docker) | dev (Azure) | prod (Azure).
+  # En la nube SPRING_PROFILES_ACTIVE lo fija Terraform; sin variable arranca en local.
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:local}
   jpa:
     open-in-view: false
 
+# Los valores por ambiente (motor de IA, CORS, pool, logs) viven en application-<perfil>.yaml.
+# Solo secretos y datos de infraestructura (DB_*, JWT_SECRET, AI_SERVICE_*) entran por variable de entorno.
 grading:
-  # mock: motor simulado | http: delega en el microservicio SystemAcademy_AI
-  engine: ${GRADING_ENGINE:mock}
-  # Califica cada respuesta en segundo plano al entregar. false: solo disparo manual del docente.
-  auto-on-submit: ${GRADING_AUTO_ON_SUBMIT:true}
   async:
-    pool-size: ${GRADING_POOL_SIZE:2}
     queue-capacity: ${GRADING_QUEUE_CAPACITY:500}
-  ai:
-    base-url: ${AI_SERVICE_URL:http://localhost:8000}
-    api-key: ${AI_SERVICE_API_KEY:}
-    # Debe ser mayor que GRADING_BUDGET_SECONDS del servicio de IA (80 por defecto)
-    timeout-seconds: ${AI_TIMEOUT_SECONDS:90}
+
+app:
+  # Primer administrador (se crea una sola vez al arrancar). Dejar vacío para no crear ninguno.
+  bootstrap-admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    full-name: ${ADMIN_FULL_NAME:Administrador}
+  cors:
+    # Orígenes del front permitidos, separados por coma. Cada perfil define el suyo.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
