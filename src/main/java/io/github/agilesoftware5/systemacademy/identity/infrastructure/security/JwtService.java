@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import java.util.Date;
 
 /** Firma y valida tokens JWT. Único punto que conoce la librería jjwt. */
@@ -25,6 +26,7 @@ public class JwtService {
     public String generate(String subject, String role) {
         Instant now = Instant.now();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(subject)
                 .claim("role", role)
                 .issuedAt(Date.from(now))

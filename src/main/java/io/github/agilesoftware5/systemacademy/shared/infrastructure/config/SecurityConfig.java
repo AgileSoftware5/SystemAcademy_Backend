@@ -57,7 +57,7 @@ public class SecurityConfig {
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // /me va primero: Spring toma la primera regla que coincide, y /auth/** es público.
-                        .requestMatchers("/api/v1/auth/me").authenticated()
+                        .requestMatchers("/api/v1/auth/me", "/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/health").permitAll()
                         .requestMatchers("/scalar/**", "/v3/api-docs/**").permitAll()

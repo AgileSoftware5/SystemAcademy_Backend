@@ -31,6 +31,11 @@ public class EnrollmentRepositoryAdapter implements EnrollmentRepository {
     }
 
     @Override
+    public java.util.Optional<Enrollment> findByCourseIdAndStudentId(UUID courseId, UUID studentId) {
+        return jpaRepository.findByCourseIdAndStudentId(courseId, studentId).map(EnrollmentAssembler::toDomain);
+    }
+
+    @Override
     public List<Enrollment> findByStudentIdAndStatus(
             UUID studentId,
             EnrollmentStatus status
