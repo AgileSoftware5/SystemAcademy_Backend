@@ -42,6 +42,16 @@ class UserQueryServiceImplTest {
         }
 
         @Override
+        public boolean existsByRole(Role role) {
+            return false;
+        }
+
+        @Override
+        public List<User> findAll() {
+            return user == null ? List.of() : List.of(user);
+        }
+
+        @Override
         public List<User> findByIdsAndRoleAndStatus(List<UUID> ids, Role role, UserStatus status) {
             return List.of();
         }

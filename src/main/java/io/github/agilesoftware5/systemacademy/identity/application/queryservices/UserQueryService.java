@@ -4,6 +4,7 @@ import io.github.agilesoftware5.systemacademy.identity.application.dto.StudentPr
 import io.github.agilesoftware5.systemacademy.identity.domain.model.aggregates.User;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetCurrentUserQuery;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetStudentProfilesByIdsQuery;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.ListUsersQuery;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,4 +15,6 @@ public interface UserQueryService {
     Optional<User> handle(GetCurrentUserQuery query);
 
     List<StudentProfile> handle(GetStudentProfilesByIdsQuery query);
+
+    List<User> handle(ListUsersQuery query);
 }

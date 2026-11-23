@@ -5,6 +5,7 @@ import io.github.agilesoftware5.systemacademy.identity.application.queryservices
 import io.github.agilesoftware5.systemacademy.identity.domain.model.aggregates.User;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetCurrentUserQuery;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetStudentProfilesByIdsQuery;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.ListUsersQuery;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.UserStatus;
 import io.github.agilesoftware5.systemacademy.identity.domain.repositories.UserRepository;
@@ -60,5 +61,10 @@ public class UserQueryServiceImpl implements UserQueryService {
                         user.getEmail().value()
                 ))
                 .toList();
+    }
+
+    @Override
+    public List<User> handle(ListUsersQuery query) {
+        return userRepository.findAll();
     }
 }

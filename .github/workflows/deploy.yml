@@ -1,0 +1,23 @@
+# push a develop -> dev, push a main -> prod: corre CI y, si pasa, despliega.
+# Toda la lógica (build, GHCR, az containerapp update) vive en el repo de infraestructura.
+name: Deploy
+
+on:
+  push:
+    branches: [develop, main]
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: AgileSoftware5/system-academy-infra/.github/workflows/deploy-app.yml@main
+    with:
+      image: system-academy-backend
+      app: api
+    secrets: inherit
