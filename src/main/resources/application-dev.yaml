@@ -1,4 +1,4 @@
-# Dev en Azure (dev.criteria.angelanampa.dev). Imita a prod pero con datos de prueba.
+# Dev en Azure (Container Apps Express, URLs *.azurecontainerapps.io). Imita a prod pero con datos de prueba.
 # Nada se asume: la base y los secretos llegan por variable de entorno (Terraform).
 spring:
   datasource:
@@ -29,4 +29,5 @@ app:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
   cors:
-    allowed-origins: https://dev.criteria.angelanampa.dev
+    # Terraform inyecta CORS_ALLOWED_ORIGINS con la URL real del front; el valor fijo es el respaldo.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://ca-criteria-dev-web.wonderfulground-07079f59.canadacentral.azurecontainerapps.io}
