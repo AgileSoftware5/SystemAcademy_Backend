@@ -24,7 +24,7 @@ jobs:
       APP: ca-criteria-${{ github.ref_name == 'main' && 'prod' || 'dev' }}-api
       RESOURCE_GROUP: rg-criteria-${{ github.ref_name == 'main' && 'prod' || 'dev' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Nombre de la imagen (GHCR exige minúsculas)
         run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/system-academy-backend" >> "$GITHUB_ENV"
