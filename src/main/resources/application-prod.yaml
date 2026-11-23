@@ -36,4 +36,5 @@ app:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
   cors:
-    allowed-origins: https://criteria.angelanampa.dev
+    # Terraform inyecta CORS_ALLOWED_ORIGINS (URL por defecto del front + dominio propio); el valor fijo es el respaldo.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://criteria.angelanampa.dev}
