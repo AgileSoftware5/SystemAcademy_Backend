@@ -2,7 +2,6 @@ package io.github.agilesoftware5.systemacademy.identity.interfaces.rest;
 
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.LoginCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.LogoutCommandService;
-import io.github.agilesoftware5.systemacademy.identity.application.commandservices.RegisterUserCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.queryservices.UserQueryService;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.commands.LogoutCommand;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetCurrentUserQuery;
@@ -43,16 +42,6 @@ public class AuthController {
         this.loginCommandService = loginCommandService;
         this.userQueryService = userQueryService;
         this.logoutCommandService = logoutCommandService;
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterUserResource resource) {
-        var result = registerUserCommandService.handle(RegisterUserCommandFromResourceAssembler.toCommand(resource));
-        if (result.isFailure()) {
-            return ApplicationErrorHttpMapper.toResponse(result.getError());
-        }
-        UserResource body = UserResourceFromDomainAssembler.toResource(result.getValue());
-        return ResponseEntity.status(201).body(body);
     }
 
     @PostMapping("/login")
