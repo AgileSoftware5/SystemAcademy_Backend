@@ -1,6 +1,7 @@
 package io.github.agilesoftware5.systemacademy.identity.interfaces.rest;
 
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.LoginCommandService;
+import io.github.agilesoftware5.systemacademy.identity.application.commandservices.LogoutCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.RegisterUserCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.queryservices.UserQueryService;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.aggregates.User;
@@ -8,6 +9,7 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.commands.Reg
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.ListUsersQuery;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Email;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
+import io.github.agilesoftware5.systemacademy.identity.domain.repositories.RevokedTokenRepository;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtAuthenticationFilter;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtService;
 import io.github.agilesoftware5.systemacademy.shared.domain.Result;
@@ -71,6 +73,12 @@ class AdminUserControllerSecurityTest {
 
     @MockitoBean
     LoginCommandService loginCommandService;
+
+    @MockitoBean
+    LogoutCommandService logoutCommandService;
+
+    @MockitoBean
+    RevokedTokenRepository revokedTokenRepository;
 
     MockMvc mvc;
 
