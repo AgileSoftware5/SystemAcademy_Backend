@@ -94,6 +94,11 @@ class ReleaseAssessmentResultsCommandServiceImplTest {
         public List<Assessment> findByCourseId(UUID courseId) {
             return store.values().stream().filter(a -> a.getCourseId().equals(courseId)).toList();
         }
+
+        @Override
+        public void delete(Assessment assessment) {
+            store.remove(assessment.getId());
+        }
     }
 
     private record SingleCourseQueryService(Course course) implements CourseQueryService {

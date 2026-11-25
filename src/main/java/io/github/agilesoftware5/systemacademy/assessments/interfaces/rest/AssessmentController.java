@@ -1,5 +1,8 @@
 package io.github.agilesoftware5.systemacademy.assessments.interfaces.rest;
 
+import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.UpdateOpenQuestionCommandService;
+import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.resources.UpdateOpenQuestionResource;
+import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.transform.UpdateOpenQuestionCommandFromResourceAssembler;
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.AddOpenQuestionCommandService;
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.CreateAssessmentCommandService;
 import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.PublishAssessmentCommandService;
@@ -21,6 +24,11 @@ import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.transf
 import io.github.agilesoftware5.systemacademy.assessments.interfaces.rest.transform.UpdateAssessmentCommandFromResourceAssembler;
 import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.ApplicationErrorHttpMapper;
 import io.github.agilesoftware5.systemacademy.shared.interfaces.rest.AuthenticatedUser;
+import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.DeleteOpenQuestionCommandService;
+import io.github.agilesoftware5.systemacademy.assessments.domain.model.commands.DeleteOpenQuestionCommand;
+import io.github.agilesoftware5.systemacademy.assessments.application.commandservices.DeleteAssessmentCommandService;
+import io.github.agilesoftware5.systemacademy.assessments.domain.model.commands.DeleteAssessmentCommand;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,6 +48,9 @@ public class AssessmentController {
 
     private final CreateAssessmentCommandService createAssessmentCommandService;
     private final AddOpenQuestionCommandService addOpenQuestionCommandService;
+    private final UpdateOpenQuestionCommandService updateOpenQuestionCommandService;
+    private final DeleteOpenQuestionCommandService deleteOpenQuestionCommandService;
+    private final DeleteAssessmentCommandService deleteAssessmentCommandService;
     private final UpdateAssessmentCommandService updateAssessmentCommandService;
     private final PublishAssessmentCommandService publishAssessmentCommandService;
     private final ReleaseAssessmentResultsCommandService releaseAssessmentResultsCommandService;
@@ -47,16 +58,22 @@ public class AssessmentController {
 
     public AssessmentController(CreateAssessmentCommandService createAssessmentCommandService,
                                  AddOpenQuestionCommandService addOpenQuestionCommandService,
+                                 UpdateOpenQuestionCommandService updateOpenQuestionCommandService,
+                                DeleteOpenQuestionCommandService deleteOpenQuestionCommandService,
+                                DeleteAssessmentCommandService deleteAssessmentCommandService,
                                  UpdateAssessmentCommandService updateAssessmentCommandService,
                                  PublishAssessmentCommandService publishAssessmentCommandService,
                                  ReleaseAssessmentResultsCommandService releaseAssessmentResultsCommandService,
                                  AssessmentQueryService assessmentQueryService) {
         this.createAssessmentCommandService = createAssessmentCommandService;
         this.addOpenQuestionCommandService = addOpenQuestionCommandService;
+        this.updateOpenQuestionCommandService = updateOpenQuestionCommandService;
         this.updateAssessmentCommandService = updateAssessmentCommandService;
         this.publishAssessmentCommandService = publishAssessmentCommandService;
         this.releaseAssessmentResultsCommandService = releaseAssessmentResultsCommandService;
         this.assessmentQueryService = assessmentQueryService;
+        this.deleteOpenQuestionCommandService = deleteOpenQuestionCommandService;
+        this.deleteAssessmentCommandService = deleteAssessmentCommandService;
     }
 
     @PostMapping("/api/v1/courses/{courseId}/assessments")
@@ -92,6 +109,84 @@ public class AssessmentController {
             return ApplicationErrorHttpMapper.toResponse(result.getError());
         }
         return ResponseEntity.status(201).body(AssessmentResourceFromDomainAssembler.toResource(result.getValue(), true));
+    }
+
+    @PutMapping("/api/v1/assessments/{id}/questions/{qid}")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<?> updateOpenQuestion(
+            @PathVariable UUID id,
+            @PathVariable UUID qid,
+            @Valid @RequestBody UpdateOpenQuestionResource resource,
+            Authentication authentication) {
+
+        UUID teacherId = AuthenticatedUser.id(authentication);
+
+        var command = UpdateOpenQuestionCommandFromResourceAssembler
+                .toCommand(resource, id, qid, teacherId);
+
+        var result = updateOpenQuestionCommandService.handle(command);
+
+        if (result.isFailure()) {
+            return ApplicationErrorHttpMapper.toResponse(result.getError());
+        }
+
+        return ResponseEntity.ok(
+                AssessmentResourceFromDomainAssembler.toResource(
+                        result.getValue(), true
+                )
+        );
+    }
+
+    @DeleteMapping("/api/v1/assessments/{id}/questions/{qid}")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<?> deleteOpenQuestion(
+            @PathVariable UUID id,
+            @PathVariable UUID qid,
+            Authentication authentication) {
+
+        UUID teacherId = AuthenticatedUser.id(authentication);
+
+        var command = new DeleteOpenQuestionCommand(
+                id,
+                qid,
+                teacherId
+        );
+
+        var result = deleteOpenQuestionCommandService.handle(command);
+
+        if (result.isFailure()) {
+            return ApplicationErrorHttpMapper.toResponse(
+                    result.getError()
+            );
+        }
+
+        return ResponseEntity.ok(
+                AssessmentResourceFromDomainAssembler.toResource(
+                        result.getValue(),
+                        true
+                )
+        );
+    }
+
+    @DeleteMapping("/api/v1/assessments/{id}")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<?> deleteAssessment(
+            @PathVariable UUID id,
+            Authentication authentication) {
+
+        UUID teacherId = AuthenticatedUser.id(authentication);
+
+        var command = new DeleteAssessmentCommand(id, teacherId);
+
+        var result = deleteAssessmentCommandService.handle(command);
+
+        if (result.isFailure()) {
+            return ApplicationErrorHttpMapper.toResponse(
+                    result.getError()
+            );
+        }
+
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/api/v1/assessments/{id}")
