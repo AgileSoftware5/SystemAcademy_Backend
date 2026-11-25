@@ -13,4 +13,6 @@ public interface AssessmentRepository {
     Optional<Assessment> findById(UUID id);
 
     List<Assessment> findByCourseId(UUID courseId);
+
+    void delete(Assessment assessment);
 }

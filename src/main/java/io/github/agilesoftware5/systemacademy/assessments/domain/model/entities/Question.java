@@ -43,6 +43,61 @@ public class Question {
         return new Question(UUID.randomUUID(), position, stem, modelAnswer, explanation, criteria);
     }
 
+    /**
+     * Construye una versión actualizada de la pregunta,
+     * conservando su identidad y posición.
+     */
+    public Question updateContent(
+            String stem,
+            String modelAnswer,
+            String explanation,
+            List<String> criteriaDescriptions) {
+
+        validateStem(stem);
+        validateModelAnswer(modelAnswer);
+
+        if (criteriaDescriptions == null || criteriaDescriptions.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "una pregunta abierta necesita al menos un criterio de evaluación");
+        }
+
+        List<RubricCriterion> criteria = new ArrayList<>();
+        int criterionPosition = 1;
+
+        for (String description : criteriaDescriptions) {
+            criteria.add(RubricCriterion.create(criterionPosition++, description));
+        }
+
+        return new Question(
+                this.id,
+                this.position,
+                stem,
+                modelAnswer,
+                explanation,
+                criteria
+        );
+    }
+
+    /**
+     * Construye una versión de la pregunta con una nueva posición,
+     * conservando su identidad, contenido y criterios de evaluación.
+     */
+    public Question updatePosition(int position) {
+        if (position < 1) {
+            throw new IllegalArgumentException(
+                    "la posición de la pregunta debe ser mayor o igual a 1");
+        }
+
+        return new Question(
+                this.id,
+                position,
+                this.stem,
+                this.modelAnswer,
+                this.explanation,
+                new ArrayList<>(this.criteria)
+        );
+    }
+
     public static Question fromPersistence(UUID id, int position, String stem, String modelAnswer, String explanation, List<RubricCriterion> criteria) {
         return new Question(id, position, stem, modelAnswer, explanation, new ArrayList<>(criteria));
     }
