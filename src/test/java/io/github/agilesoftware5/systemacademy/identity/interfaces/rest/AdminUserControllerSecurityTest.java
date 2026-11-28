@@ -1,5 +1,6 @@
 package io.github.agilesoftware5.systemacademy.identity.interfaces.rest;
 
+import io.github.agilesoftware5.systemacademy.identity.application.commandservices.ChangeUserStatusCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.LoginCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.LogoutCommandService;
 import io.github.agilesoftware5.systemacademy.identity.application.commandservices.RegisterUserCommandService;
@@ -9,7 +10,14 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.commands.Reg
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.ListUsersQuery;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Email;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.commands.ChangeUserStatusCommand;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.UserSearchCriteria;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.UserStatus;
 import io.github.agilesoftware5.systemacademy.identity.domain.repositories.RevokedTokenRepository;
+import io.github.agilesoftware5.systemacademy.identity.domain.repositories.UserRepository;
+import io.github.agilesoftware5.systemacademy.shared.application.audit.AuditLog;
+import io.github.agilesoftware5.systemacademy.shared.domain.ApplicationError;
+import io.github.agilesoftware5.systemacademy.shared.domain.PageResult;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtAuthenticationFilter;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtService;
 import io.github.agilesoftware5.systemacademy.shared.domain.Result;
@@ -37,7 +45,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,11 +90,21 @@ class AdminUserControllerSecurityTest {
     @MockitoBean
     RevokedTokenRepository revokedTokenRepository;
 
+    @MockitoBean
+    UserRepository userRepository;
+
+    @MockitoBean
+    ChangeUserStatusCommandService changeUserStatusCommandService;
+
+    @MockitoBean
+    AuditLog auditLog;
+
     MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilterChain).build();
+        when(userRepository.isActive(any())).thenReturn(true);
     }
 
     private String bearer(Role role) {
@@ -150,11 +170,71 @@ class AdminUserControllerSecurityTest {
     @Test
     void adminListsUsers() throws Exception {
         var user = User.register(new Email("ana@academia.edu"), "hash", "Ana", Role.STUDENT);
-        when(userQueryService.handle(any(ListUsersQuery.class))).thenReturn(List.of(user));
+        when(userQueryService.handle(any(ListUsersQuery.class))).thenReturn(new PageResult<>(List.of(user), 1, 0, 20));
 
         mvc.perform(get("/api/v1/admin/users").header("Authorization", bearer(Role.ADMIN)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].email").value("ana@academia.edu"))
-                .andExpect(jsonPath("$[0].passwordHash").doesNotExist());
+                .andExpect(jsonPath("$.items[0].email").value("ana@academia.edu"))
+                .andExpect(jsonPath("$.items[0].passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.total").value(1));
+    }
+
+    @Test
+    void listPassesFiltersAndCapsThePageSize() throws Exception {
+        when(userQueryService.handle(any(ListUsersQuery.class))).thenReturn(new PageResult<>(List.of(), 0, 2, 100));
+
+        mvc.perform(get("/api/v1/admin/users?q=ana&role=student&status=suspended&page=2&size=5000")
+                        .header("Authorization", bearer(Role.ADMIN)))
+                .andExpect(status().isOk());
+
+        verify(userQueryService).handle(argThat((ListUsersQuery q) ->
+                q.page() == 2 && q.size() == 100
+                        && q.criteria().equals(new UserSearchCriteria("ana", Role.STUDENT, UserStatus.SUSPENDED))));
+    }
+
+    @Test
+    void invalidFilterIs400() throws Exception {
+        mvc.perform(get("/api/v1/admin/users?role=director").header("Authorization", bearer(Role.ADMIN)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void adminSuspendsAUser() throws Exception {
+        var user = User.register(new Email("ana@academia.edu"), "hash", "Ana", Role.STUDENT);
+        user.suspend();
+        when(changeUserStatusCommandService.handle(any(ChangeUserStatusCommand.class))).thenReturn(Result.success(user));
+
+        mvc.perform(patch("/api/v1/admin/users/" + user.getId() + "/status").header("Authorization", bearer(Role.ADMIN))
+                        .contentType("application/json").content("{\"status\":\"SUSPENDED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUSPENDED"));
+    }
+
+    @Test
+    void statusChangeRuleViolationIs422() throws Exception {
+        when(changeUserStatusCommandService.handle(any(ChangeUserStatusCommand.class)))
+                .thenReturn(Result.failure(ApplicationError.businessRuleViolation("no puedes cambiar el estado de tu propia cuenta")));
+
+        mvc.perform(patch("/api/v1/admin/users/" + UUID.randomUUID() + "/status").header("Authorization", bearer(Role.ADMIN))
+                        .contentType("application/json").content("{\"status\":\"SUSPENDED\"}"))
+                .andExpect(status().isUnprocessableContent());
+    }
+
+    @Test
+    void nonAdminsCannotChangeStatus() throws Exception {
+        for (Role role : List.of(Role.TEACHER, Role.STUDENT)) {
+            mvc.perform(patch("/api/v1/admin/users/" + UUID.randomUUID() + "/status").header("Authorization", bearer(role))
+                            .contentType("application/json").content("{\"status\":\"SUSPENDED\"}"))
+                    .andExpect(status().isForbidden());
+        }
+        verify(changeUserStatusCommandService, never()).handle(any());
+    }
+
+    @Test
+    void aTokenOfASuspendedAccountIsRejectedEvenIfStillValid() throws Exception {
+        when(userRepository.isActive(any())).thenReturn(false);
+
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", bearer(Role.ADMIN)))
+                .andExpect(status().isUnauthorized());
     }
 }
