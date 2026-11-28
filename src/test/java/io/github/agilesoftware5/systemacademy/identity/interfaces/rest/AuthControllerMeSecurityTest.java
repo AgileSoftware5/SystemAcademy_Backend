@@ -10,6 +10,7 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetC
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Email;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
 import io.github.agilesoftware5.systemacademy.identity.domain.repositories.RevokedTokenRepository;
+import io.github.agilesoftware5.systemacademy.identity.domain.repositories.UserRepository;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtAuthenticationFilter;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.security.JwtService;
 import io.github.agilesoftware5.systemacademy.shared.infrastructure.config.SecurityConfig;
@@ -76,10 +77,14 @@ class AuthControllerMeSecurityTest {
     @MockitoBean
     RevokedTokenRepository revokedTokenRepository;
 
+    @MockitoBean
+    UserRepository userRepository;
+
     @BeforeEach
     void setUp() {
         // Solo la cadena de Spring Security, como en la app: el filtro JWT corre dentro de ella una sola vez.
         mvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilterChain).build();
+        when(userRepository.isActive(any())).thenReturn(true);
     }
 
     private final User user = User.register(new Email("ana@academia.edu"), "hash", "Ana Pérez", Role.TEACHER);

@@ -2,7 +2,7 @@ package io.github.agilesoftware5.systemacademy.assessments.domain.model.aggregat
 
 import io.github.agilesoftware5.systemacademy.assessments.domain.model.entities.Question;
 import io.github.agilesoftware5.systemacademy.assessments.domain.model.valueobjects.AssessmentStatus;
-
+import java.util.NoSuchElementException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,6 +73,78 @@ public class Assessment {
         Question question = Question.openQuestion(position, stem, modelAnswer, explanation, criteriaDescriptions);
         questions.add(question);
         return question.getId();
+    }
+
+    /**
+     * Edita una pregunta abierta conservando su identidad y posición.
+     * Solo permitido mientras la evaluación está en DRAFT.
+     */
+    public void updateOpenQuestion(
+            UUID questionId,
+            String stem,
+            String modelAnswer,
+            String explanation,
+            List<String> criteriaDescriptions) {
+
+        ensureDraft();
+
+        for (int i = 0; i < questions.size(); i++) {
+            Question question = questions.get(i);
+
+            if (question.getId().equals(questionId)) {
+                Question updatedQuestion = question.updateContent(
+                        stem,
+                        modelAnswer,
+                        explanation,
+                        criteriaDescriptions
+                );
+
+                questions.set(i, updatedQuestion);
+                return;
+            }
+        }
+
+        throw new NoSuchElementException(
+                "pregunta no encontrada en la evaluación");
+    }
+
+    /**
+     * Elimina una pregunta abierta y reindexa las posiciones
+     * de las preguntas restantes.
+     * Solo permitido mientras la evaluación está en DRAFT.
+     */
+    public void deleteOpenQuestion(UUID questionId) {
+        ensureDraft();
+
+        for (int i = 0; i < questions.size(); i++) {
+            Question question = questions.get(i);
+
+            if (question.getId().equals(questionId)) {
+                questions.remove(i);
+
+                for (int j = i; j < questions.size(); j++) {
+                    Question remainingQuestion = questions.get(j);
+
+                    questions.set(
+                            j,
+                            remainingQuestion.updatePosition(j + 1)
+                    );
+                }
+
+                return;
+            }
+        }
+
+        throw new NoSuchElementException(
+                "pregunta no encontrada en la evaluación");
+    }
+
+    /**
+     * Verifica que la evaluación pueda eliminarse.
+     * Solo se permite eliminar evaluaciones en estado DRAFT.
+     */
+    public void ensureDeletable() {
+        ensureDraft();
     }
 
     /**

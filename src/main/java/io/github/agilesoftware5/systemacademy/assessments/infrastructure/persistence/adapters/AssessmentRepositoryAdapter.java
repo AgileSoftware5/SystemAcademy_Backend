@@ -34,4 +34,9 @@ public class AssessmentRepositoryAdapter implements AssessmentRepository {
     public List<Assessment> findByCourseId(UUID courseId) {
         return jpaRepository.findByCourseId(courseId).stream().map(AssessmentAssembler::toDomain).toList();
     }
+
+    @Override
+    public void delete(Assessment assessment) {
+        jpaRepository.deleteById(assessment.getId());
+    }
 }

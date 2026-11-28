@@ -6,6 +6,8 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetC
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetStudentProfilesByIdsQuery;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.ListUsersQuery;
 
+import io.github.agilesoftware5.systemacademy.shared.domain.PageResult;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -16,5 +18,5 @@ public interface UserQueryService {
 
     List<StudentProfile> handle(GetStudentProfilesByIdsQuery query);
 
-    List<User> handle(ListUsersQuery query);
+    PageResult<User> handle(ListUsersQuery query);
 }
