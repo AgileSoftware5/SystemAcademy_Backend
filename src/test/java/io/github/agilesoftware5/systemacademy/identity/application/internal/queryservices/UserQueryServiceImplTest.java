@@ -2,6 +2,8 @@ package io.github.agilesoftware5.systemacademy.identity.application.internal.que
 
 import io.github.agilesoftware5.systemacademy.identity.domain.model.aggregates.User;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.GetCurrentUserQuery;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.UserSearchCriteria;
+import io.github.agilesoftware5.systemacademy.shared.domain.PageResult;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Email;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.UserStatus;
@@ -44,6 +46,17 @@ class UserQueryServiceImplTest {
         @Override
         public boolean existsByRole(Role role) {
             return false;
+        }
+
+        @Override
+        public boolean isActive(UUID id) {
+            return user != null && user.getId().equals(id) && user.isActive();
+        }
+
+        @Override
+        public PageResult<User> search(UserSearchCriteria criteria, int page, int size) {
+            var items = user == null ? List.<User>of() : List.of(user);
+            return new PageResult<>(items, items.size(), page, size);
         }
 
         @Override

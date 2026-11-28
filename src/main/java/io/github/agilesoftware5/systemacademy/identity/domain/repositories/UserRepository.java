@@ -5,6 +5,9 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.UserStatus;
 
+import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.UserSearchCriteria;
+import io.github.agilesoftware5.systemacademy.shared.domain.PageResult;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +26,10 @@ public interface UserRepository {
     boolean existsByRole(Role role);
 
     List<User> findAll();
+
+    boolean isActive(UUID id);
+
+    PageResult<User> search(UserSearchCriteria criteria, int page, int size);
 
     List<User> findByIdsAndRoleAndStatus(
             List<UUID> ids,

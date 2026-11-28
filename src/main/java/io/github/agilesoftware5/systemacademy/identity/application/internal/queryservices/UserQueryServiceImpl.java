@@ -9,6 +9,7 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.List
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.Role;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.UserStatus;
 import io.github.agilesoftware5.systemacademy.identity.domain.repositories.UserRepository;
+import io.github.agilesoftware5.systemacademy.shared.domain.PageResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -64,7 +65,7 @@ public class UserQueryServiceImpl implements UserQueryService {
     }
 
     @Override
-    public List<User> handle(ListUsersQuery query) {
-        return userRepository.findAll();
+    public PageResult<User> handle(ListUsersQuery query) {
+        return userRepository.search(query.criteria(), query.page(), query.size());
     }
 }

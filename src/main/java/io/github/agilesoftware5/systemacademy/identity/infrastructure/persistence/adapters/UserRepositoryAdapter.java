@@ -7,6 +7,10 @@ import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects
 import io.github.agilesoftware5.systemacademy.identity.domain.repositories.UserRepository;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.persistence.assemblers.UserAssembler;
 import io.github.agilesoftware5.systemacademy.identity.infrastructure.persistence.repositories.UserJpaRepository;
+import io.github.agilesoftware5.systemacademy.identity.domain.model.queries.UserSearchCriteria;
+import io.github.agilesoftware5.systemacademy.shared.domain.PageResult;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -52,6 +56,26 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public List<User> findAll() {
         return jpaRepository.findAll().stream().map(UserAssembler::toDomain).toList();
+    }
+
+    @Override
+    public boolean isActive(UUID id) {
+        return jpaRepository.existsByIdAndStatus(id, UserStatus.ACTIVE);
+    }
+
+    @Override
+    public PageResult<User> search(UserSearchCriteria criteria, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id")));
+        var result = jpaRepository.search(criteria.role(), criteria.status(), likePattern(criteria.text()), pageable);
+        return new PageResult<>(result.map(UserAssembler::toDomain).getContent(), result.getTotalElements(), page, size);
+    }
+
+    private static String likePattern(String text) {
+        if (text == null || text.isBlank()) {
+            return "%";
+        }
+        var escaped = text.trim().toLowerCase().replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        return "%" + escaped + "%";
     }
 
     @Override

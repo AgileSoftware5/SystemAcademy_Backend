@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import io.github.agilesoftware5.systemacademy.identity.domain.model.valueobjects.AuthenticatedToken;
 import io.github.agilesoftware5.systemacademy.identity.domain.repositories.RevokedTokenRepository;
+import io.github.agilesoftware5.systemacademy.identity.domain.repositories.UserRepository;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,10 +24,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final RevokedTokenRepository revokedTokenRepository;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService, RevokedTokenRepository revokedTokenRepository) {
+    public JwtAuthenticationFilter(JwtService jwtService, RevokedTokenRepository revokedTokenRepository, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.revokedTokenRepository = revokedTokenRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -42,6 +45,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     throw new IllegalStateException("token revocado");
                 }
                 String userId = claims.getSubject();
+                if (!userRepository.isActive(java.util.UUID.fromString(userId))) {
+                    throw new IllegalStateException("cuenta suspendida o inexistente");
+                }
                 String role = claims.get("role", String.class);
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                 var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
